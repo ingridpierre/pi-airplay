@@ -47,7 +47,7 @@ body {
 }
 
 .track-info h2 {
-    font-size: 1.3rem;
+    font-size: 1.8rem;
     margin-bottom: 0.4rem;
     color: #fff;
 }
@@ -55,12 +55,12 @@ body {
 .track-info p {
     color: #888;
     margin-bottom: 0.2rem;
-    font-size: 1rem;
+    font-size: 1.4rem;
 }
 
 .playback-status {
     color: #888;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
 }
 
 .playback-status i {
@@ -82,10 +82,10 @@ body {
     }
 
     .track-info h2 {
-        font-size: 1.2rem;
+        font-size: 1.6rem;
     }
 
     .track-info p {
-        font-size: 0.9rem;
+        font-size: 1.3rem;
     }
 }
