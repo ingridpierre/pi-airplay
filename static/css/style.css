@@ -28,14 +28,14 @@ body {
 
 .album-art {
     width: 230px;
-    height: 100%;
+    height: 230px;
     background: #1a1a1a;
-    border-radius: 15px 0 0 15px;
+    border-radius: 15px;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-    margin: 0 1rem; /*Added margin for spacing*/
+    margin: 1rem; /*Added margin all around*/
 }
 
 .album-art img {
