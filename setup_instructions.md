@@ -1,7 +1,3 @@
-# AirPlay Setup Troubleshooting Guide
-
-1. First, verify that shairport-sync and avahi-daemon are installed and running:
-```bash
 # Install if not already present
 sudo apt update
 sudo apt install -y shairport-sync avahi-daemon
@@ -69,3 +65,62 @@ speaker-test -D hw:CARD=IQaudIODAC -c 2
 # Check detailed audio configuration
 amixer -c IQaudIODAC scontrols
 ```
+
+6. Setting up the Web Interface:
+```bash
+# Copy the web interface service
+sudo cp config/airplay-web.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable airplay-web
+sudo systemctl start airplay-web
+
+# Install Chromium if not present
+sudo apt install -y chromium-browser
+
+# Create autostart directory if it doesn't exist
+mkdir -p ~/.config/autostart
+```
+
+7. Create Chromium autostart file:
+```bash
+cat > ~/.config/autostart/chromium.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Chromium Kiosk
+Exec=chromium-browser --kiosk --disable-restore-session-state http://localhost:5000
+EOF
+```
+
+8. Configure display settings:
+```bash
+# Prevent screen from going blank
+sudo raspi-config nonint do_blanking 1
+
+# For console-based systems, add to /etc/xdg/lxsession/LXDE-pi/autostart:
+@xset s off
+@xset -dpms
+@xset s noblank
+```
+
+9. Reboot to apply all changes:
+```bash
+sudo reboot
+```
+
+After reboot, your Raspberry Pi should:
+1. Start the AirPlay receiver service (shairport-sync)
+2. Launch the web interface (Flask app)
+3. Open Chromium in kiosk mode showing the web interface
+
+To exit kiosk mode if needed: press Alt+F4
+
+For troubleshooting the web interface:
+```bash
+# Check web interface status
+sudo systemctl status airplay-web
+
+# View web interface logs
+sudo journalctl -u airplay-web -n 50
+
+# Verify the web server is running
+curl http://localhost:5000

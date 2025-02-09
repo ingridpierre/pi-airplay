@@ -1,0 +1,13 @@
+[Unit]
+Description=AirPlay Web Interface
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/airplay-receiver/app.py
+WorkingDirectory=/home/pi/airplay-receiver
+User=pi
+Environment=FLASK_ENV=production
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
