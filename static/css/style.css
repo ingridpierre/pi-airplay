@@ -1,0 +1,77 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #1a1a1a;
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.player-container {
+    background: #2d2d2d;
+    border-radius: 20px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+}
+
+.album-art {
+    width: 250px;
+    height: 250px;
+    margin: 0 auto 2rem;
+    background: #1a1a1a;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.default-album-art {
+    font-size: 5rem;
+    color: #444;
+}
+
+.track-info {
+    margin-bottom: 2rem;
+}
+
+.track-info h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+.track-info p {
+    color: #888;
+    margin-bottom: 0.25rem;
+}
+
+.playback-status {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.playback-status i {
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .player-container {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    .album-art {
+        width: 200px;
+        height: 200px;
+    }
+}
