@@ -12,22 +12,24 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .player-container {
     background: #2d2d2d;
-    border-radius: 20px;
-    padding: 2rem;
-    width: 90%;
-    max-width: 400px;
+    border-radius: 15px;
+    padding: 1.5rem;
+    width: 95%;
+    max-width: 780px;
     text-align: center;
     box-shadow: 0 10px 20px rgba(0,0,0,0.3);
 }
 
 .album-art {
-    width: 250px;
-    height: 250px;
-    margin: 0 auto 2rem;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 1.5rem;
     background: #1a1a1a;
     border-radius: 10px;
     display: flex;
@@ -36,23 +38,24 @@ body {
 }
 
 .default-album-art {
-    font-size: 5rem;
+    font-size: 4rem;
     color: #444;
 }
 
 .track-info {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .track-info h2 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 0.4rem;
     color: #fff;
 }
 
 .track-info p {
     color: #888;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
 }
 
 .playback-status {
@@ -64,14 +67,25 @@ body {
     margin-right: 0.5rem;
 }
 
-@media (max-width: 480px) {
+/* Optimized for 800x480 display */
+@media (max-width: 800px) {
     .player-container {
-        width: 95%;
+        width: 98%;
         padding: 1rem;
+        border-radius: 12px;
     }
 
     .album-art {
-        width: 200px;
-        height: 200px;
+        width: 160px;
+        height: 160px;
+        margin-bottom: 1rem;
+    }
+
+    .track-info h2 {
+        font-size: 1.2rem;
+    }
+
+    .track-info p {
+        font-size: 0.9rem;
     }
 }
