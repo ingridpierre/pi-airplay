@@ -13,14 +13,16 @@
         <div class="album-art">
             <i class="fa fa-music default-album-art"></i>
         </div>
-        <div class="track-info">
-            <h2 id="track-title">Not Playing</h2>
-            <p id="track-artist">No Artist</p>
-            <p id="track-album">No Album</p>
-        </div>
-        <div class="playback-status">
-            <i class="fa fa-wifi"></i>
-            <span id="connection-status">Waiting for AirPlay...</span>
+        <div class="content-right">
+            <div class="track-info">
+                <h2 id="track-title">Not Playing</h2>
+                <p id="track-artist">No Artist</p>
+                <p id="track-album">No Album</p>
+            </div>
+            <div class="playback-status">
+                <i class="fa fa-wifi"></i>
+                <span id="connection-status">Waiting for AirPlay...</span>
+            </div>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/player.js') }}"></script>
