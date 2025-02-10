@@ -6,14 +6,13 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+from utils.audio_control import AudioController
+
+audio_controller = AudioController()
+
 @app.route('/now-playing')
 def now_playing():
-    # Mock data - replace with your actual music source
-    return jsonify({
-        'title': 'Sample Song',
-        'artist': 'Sample Artist',
-        'album': 'Sample Album'
-    })
+    return jsonify(audio_controller.get_current_metadata())
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
