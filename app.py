@@ -33,11 +33,14 @@ def now_playing():
         pipe_path = '/tmp/shairport-sync-metadata'
         pipe_exists = os.path.exists(pipe_path)
         pipe_perms = 'N/A'
+        pipe_owner = 'N/A'
 
         if pipe_exists:
             try:
-                pipe_perms = oct(os.stat(pipe_path).st_mode)[-3:]
-                logger.info(f"Metadata pipe exists with permissions: {pipe_perms}")
+                stat = os.stat(pipe_path)
+                pipe_perms = oct(stat.st_mode)[-3:]
+                pipe_owner = f"{stat.st_uid}:{stat.st_gid}"
+                logger.info(f"Metadata pipe exists with permissions: {pipe_perms}, owner: {pipe_owner}")
             except OSError as e:
                 logger.error(f"Error checking pipe permissions: {e}")
 
@@ -49,6 +52,8 @@ def now_playing():
         metadata['_debug'] = {
             'pipe_exists': pipe_exists,
             'permissions': pipe_perms,
+            'owner': pipe_owner,
+            'shairport_running': audio_controller.is_playing(),
             'last_error': None
         }
 
@@ -63,8 +68,48 @@ def now_playing():
             '_debug': {
                 'pipe_exists': pipe_exists if 'pipe_exists' in locals() else False,
                 'permissions': pipe_perms if 'pipe_perms' in locals() else 'N/A',
+                'owner': pipe_owner if 'pipe_owner' in locals() else 'N/A',
+                'shairport_running': False,
                 'last_error': error_msg
             }
+        })
+
+@app.route('/debug/pipe-data')
+def debug_pipe_data():
+    """Diagnostic endpoint to check raw pipe data"""
+    try:
+        pipe_path = '/tmp/shairport-sync-metadata'
+        if not os.path.exists(pipe_path):
+            return jsonify({'error': 'Pipe not found'})
+
+        # Try to read raw data from pipe
+        with open(pipe_path, 'rb') as pipe:
+            raw_data = pipe.read(4096)
+            if raw_data:
+                try:
+                    decoded = raw_data.decode('utf-8', errors='ignore')
+                    return jsonify({
+                        'status': 'success',
+                        'raw_data_length': len(raw_data),
+                        'decoded_data': decoded[:500],  # First 500 chars
+                        'hex_data': raw_data.hex()[:100]  # First 50 bytes in hex
+                    })
+                except Exception as e:
+                    return jsonify({
+                        'status': 'decode_error',
+                        'error': str(e),
+                        'raw_length': len(raw_data),
+                        'hex_data': raw_data.hex()[:100]
+                    })
+            else:
+                return jsonify({
+                    'status': 'no_data',
+                    'message': 'No data available in pipe'
+                })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
         })
 
 if __name__ == '__main__':
