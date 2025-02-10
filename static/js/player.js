@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const trackArtist = document.getElementById('track-artist');
     const trackAlbum = document.getElementById('track-album');
     const connectionStatus = document.getElementById('connection-status');
+    const debugLog = document.getElementById('debug-log'); // Added to get debug log element
 
     let lastUpdate = {};
 
@@ -18,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Only update if data has changed
                 if (JSON.stringify(data) !== JSON.stringify(lastUpdate)) {
                     console.log('New metadata received:', data);
+                    const timestamp = new Date().toLocaleTimeString();
+                    debugLog.textContent = `${timestamp}\nMetadata Pipe: ${data._debug?.pipe_exists ? 'Exists' : 'Missing'}\nPermissions: ${data._debug?.permissions}\nLast Error: ${data._debug?.last_error || 'None'}\n\nData: ${JSON.stringify(data, null, 2)}`;
 
                     trackTitle.textContent = data.title || 'Not Playing';
                     trackArtist.textContent = data.artist || 'No Artist';

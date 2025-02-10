@@ -21,13 +21,14 @@ def now_playing():
     try:
         # Check metadata pipe existence and permissions
         pipe_path = '/tmp/shairport-sync-metadata'
-        if os.path.exists(pipe_path):
-            logger.debug(f"Metadata pipe exists at {pipe_path}")
-            logger.debug(f"Pipe permissions: {oct(os.stat(pipe_path).st_mode)[-3:]}")
-        else:
-            logger.warning(f"Metadata pipe not found at {pipe_path}")
+        debug_info = {
+            'pipe_exists': os.path.exists(pipe_path),
+            'permissions': oct(os.stat(pipe_path).st_mode)[-3:] if os.path.exists(pipe_path) else 'N/A',
+            'last_error': None
+        }
 
         metadata = audio_controller.get_current_metadata()
+        metadata['_debug'] = debug_info
         logger.debug(f"Returning metadata: {metadata}")
         return jsonify(metadata)
     except Exception as e:

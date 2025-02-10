@@ -70,9 +70,7 @@ body {
 }
 
 .track-info p {
-    color: #888;
-    margin-bottom: 0.5rem;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
 }
 
 .playback-status {
@@ -84,6 +82,29 @@ body {
 .playback-status i {
     margin-right: 0.5rem;
 }
+
+.debug-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+.debug-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #666;
+}
+
+#debug-log {
+    font-family: monospace;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    margin: 0;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
 
 /* Optimized for 800x480 display */
 @media (max-width: 800px) {
