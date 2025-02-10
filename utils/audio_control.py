@@ -24,14 +24,32 @@ class AudioController:
 
     def get_current_metadata(self):
         try:
-            with open(self.metadata_pipe, 'r') as pipe:
-                data = pipe.read()
+            with open(self.metadata_pipe, 'rb') as pipe:
+                data = pipe.read(4096)
                 if data:
-                    return {
-                        'artist': data.get('artist', 'Unknown Artist'),
-                        'title': data.get('title', 'Unknown Title'),
-                        'album': data.get('album', 'Unknown Album')
-                    }
+                    try:
+                        # Try to decode the data as UTF-8
+                        decoded = data.decode('utf-8')
+                        # Look for specific metadata tags
+                        artist = None
+                        title = None
+                        album = None
+                        
+                        if 'artist' in decoded:
+                            artist = decoded.split('artist')[1].split('"')[2]
+                        if 'title' in decoded:
+                            title = decoded.split('title')[1].split('"')[2]
+                        if 'album' in decoded:
+                            album = decoded.split('album')[1].split('"')[2]
+                            
+                        if any([artist, title, album]):
+                            return {
+                                'artist': artist or 'Unknown Artist',
+                                'title': title or 'Unknown Title',
+                                'album': album or 'Unknown Album'
+                            }
+                    except:
+                        pass
         except:
             pass
         return {

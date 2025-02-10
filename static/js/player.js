@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Update every 5 seconds
-    setInterval(updateDisplay, 5000);
+    // Update every second
+    setInterval(updateDisplay, 1000);
     updateDisplay();
 });
