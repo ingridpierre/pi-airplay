@@ -100,13 +100,26 @@ class AudioController:
             try:
                 data = os.read(fd, 4096)
                 if data:
-                    return self._parse_metadata(data)
+                    logger.debug(f"Raw data from pipe: {data[:200]}")
+                    parsed = self._parse_metadata(data)
+                    logger.debug(f"Parsed metadata: {parsed}")
+                    return parsed
                 else:
                     logger.debug("No data available in pipe")
+                    # Check if shairport-sync is actually writing to the pipe
+                    try:
+                        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+                        if 'shairport-sync' not in result.stdout:
+                            logger.error("shairport-sync process not found")
+                        else:
+                            logger.debug("shairport-sync is running")
+                    except Exception as e:
+                        logger.error(f"Error checking shairport-sync: {e}")
             except BlockingIOError:
                 logger.debug("No new metadata available")
             except Exception as e:
                 logger.error(f"Error reading metadata pipe: {e}")
+                logger.exception("Detailed error:")
             finally:
                 os.close(fd)
 
