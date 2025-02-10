@@ -1,14 +1,3 @@
-# Install if not already present
-sudo apt update
-sudo apt install -y shairport-sync avahi-daemon
-
-# Start and enable the services
-sudo systemctl start avahi-daemon
-sudo systemctl enable avahi-daemon
-sudo systemctl start shairport-sync
-sudo systemctl enable shairport-sync
-```
-
 2. Copy the configuration files to the correct locations:
 ```bash
 # Copy config files
@@ -81,13 +70,13 @@ sudo apt install -y chromium-browser
 mkdir -p ~/.config/autostart
 ```
 
-7. Create Chromium autostart file:
+7. Update Chromium autostart file:
 ```bash
 cat > ~/.config/autostart/chromium.desktop << EOF
 [Desktop Entry]
 Type=Application
 Name=Chromium Kiosk
-Exec=chromium-browser --kiosk --disable-restore-session-state http://localhost:5000
+Exec=chromium-browser --kiosk --disable-restore-session-state http://localhost:5001
 EOF
 ```
 
