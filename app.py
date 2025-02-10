@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify
 import logging
 import os
+import select
+from os import O_RDONLY, O_NONBLOCK  # Add O_NONBLOCK import
 from utils.audio_control import AudioController
 
 # Configure logging
@@ -82,31 +84,48 @@ def debug_pipe_data():
         if not os.path.exists(pipe_path):
             return jsonify({'error': 'Pipe not found'})
 
-        # Try to read raw data from pipe
-        with open(pipe_path, 'rb') as pipe:
-            raw_data = pipe.read(4096)
-            if raw_data:
-                try:
-                    decoded = raw_data.decode('utf-8', errors='ignore')
+        # Open pipe in non-blocking mode
+        fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            with os.fdopen(fd, 'rb') as pipe:
+                ready, _, _ = select.select([pipe], [], [], 0.5)  # 500ms timeout
+                if ready:
+                    data = pipe.read(4096)
+                    if data:
+                        try:
+                            decoded = data.decode('utf-8', errors='ignore')
+                            return jsonify({
+                                'status': 'success',
+                                'raw_data_length': len(data),
+                                'decoded_data': decoded[:500],  # First 500 chars
+                                'hex_data': data.hex()[:100]  # First 50 bytes in hex
+                            })
+                        except Exception as e:
+                            return jsonify({
+                                'status': 'decode_error',
+                                'error': str(e),
+                                'raw_length': len(data),
+                                'hex_data': data.hex()[:100]
+                            })
+                    else:
+                        return jsonify({
+                            'status': 'no_data',
+                            'message': 'Pipe is empty'
+                        })
+                else:
                     return jsonify({
-                        'status': 'success',
-                        'raw_data_length': len(raw_data),
-                        'decoded_data': decoded[:500],  # First 500 chars
-                        'hex_data': raw_data.hex()[:100]  # First 50 bytes in hex
+                        'status': 'timeout',
+                        'message': 'No data available within timeout period'
                     })
-                except Exception as e:
-                    return jsonify({
-                        'status': 'decode_error',
-                        'error': str(e),
-                        'raw_length': len(raw_data),
-                        'hex_data': raw_data.hex()[:100]
-                    })
-            else:
-                return jsonify({
-                    'status': 'no_data',
-                    'message': 'No data available in pipe'
-                })
+        finally:
+            # Ensure we always close the file descriptor
+            try:
+                os.close(fd)
+            except:
+                pass
+
     except Exception as e:
+        logger.error(f"Error in debug_pipe_data: {e}")
         return jsonify({
             'status': 'error',
             'error': str(e)
