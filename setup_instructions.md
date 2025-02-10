@@ -1,5 +1,3 @@
-2. Copy the configuration files to the correct locations:
-```bash
 # Copy config files
 sudo cp config/shairport-sync.conf /etc/shairport-sync.conf
 sudo cp config/asound.conf /etc/asound.conf
@@ -57,11 +55,19 @@ amixer -c IQaudIODAC scontrols
 
 6. Setting up the Web Interface:
 ```bash
+# Create log file with appropriate permissions
+sudo touch /var/log/airplay-web.log
+sudo chown pi:pi /var/log/airplay-web.log
+
 # Copy the web interface service
 sudo cp config/airplay-web.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable airplay-web
 sudo systemctl start airplay-web
+
+# Verify service status
+sudo systemctl status airplay-web
+sudo tail -f /var/log/airplay-web.log
 
 # Install Chromium if not present
 sudo apt install -y chromium-browser
