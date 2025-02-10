@@ -24,9 +24,14 @@ class AudioController:
 
     def get_current_metadata(self):
         try:
+            if not os.path.exists(self.metadata_pipe):
+                print(f"Metadata pipe not found at {self.metadata_pipe}")
+                return {'artist': 'No Artist', 'title': 'Not Playing', 'album': 'No Album'}
+                
             with open(self.metadata_pipe, 'rb') as pipe:
                 data = pipe.read(4096)
                 if data:
+                    print(f"Raw metadata: {data}")
                     try:
                         # Try to decode the data as UTF-8
                         decoded = data.decode('utf-8')
