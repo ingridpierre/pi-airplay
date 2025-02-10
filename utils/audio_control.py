@@ -56,6 +56,7 @@ class AudioController:
             if not os.path.exists(self.metadata_pipe):
                 logger.info(f"Creating metadata pipe at {self.metadata_pipe}")
                 os.mkfifo(self.metadata_pipe)
+                # Set permissions to allow both shairport-sync (creator) and ivpi (reader) access
                 os.chmod(self.metadata_pipe, 
                         stat.S_IRUSR | stat.S_IWUSR | 
                         stat.S_IRGRP | stat.S_IWGRP |
