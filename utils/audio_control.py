@@ -4,6 +4,7 @@ import os
 import re
 import logging
 import stat
+import select
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -22,63 +23,47 @@ class AudioController:
         if not os.path.exists(self.metadata_pipe):
             try:
                 os.mkfifo(self.metadata_pipe)
-                # Ensure the pipe has correct permissions (666)
                 os.chmod(self.metadata_pipe, stat.S_IRUSR | stat.S_IWUSR | 
                                           stat.S_IRGRP | stat.S_IWGRP |
                                           stat.S_IROTH | stat.S_IWOTH)
                 logger.info(f"Created metadata pipe at {self.metadata_pipe}")
             except OSError as e:
                 logger.error(f"Failed to create metadata pipe: {e}")
-                pass
-        else:
-            logger.info(f"Metadata pipe already exists at {self.metadata_pipe}")
-            # Log current permissions
-            try:
-                perms = oct(os.stat(self.metadata_pipe).st_mode)[-3:]
-                logger.info(f"Current pipe permissions: {perms}")
-            except Exception as e:
-                logger.error(f"Failed to check pipe permissions: {e}")
 
     def _parse_metadata(self, data):
+        if isinstance(data, bytes):
+            data = data.decode('utf-8', errors='ignore')
+
+        metadata = {}
+        for item in data.split('</item>'):
+            if 'asar' in item and '<data>' in item:
+                metadata['artist'] = item.split('<data>')[1].split('</data>')[0]
+            elif 'minm' in item and '<data>' in item:
+                metadata['title'] = item.split('<data>')[1].split('</data>')[0]
+            elif 'asal' in item and '<data>' in item:
+                metadata['album'] = item.split('<data>')[1].split('</data>')[0]
+
+        if metadata:
+            self.current_metadata.update(metadata)
+            logger.debug(f"Updated metadata: {self.current_metadata}")
+
+        return self.current_metadata
+
+    def get_current_metadata(self):
         try:
-            # Convert bytes to string if needed
-            if isinstance(data, bytes):
-                data = data.decode('utf-8', errors='ignore')
+            if not os.path.exists(self.metadata_pipe):
+                return self.current_metadata
 
-            logger.debug(f"Parsing metadata: {data[:200]}...")  # Log first 200 chars
-
-            # Regular expressions for metadata extraction
-            patterns = {
-                'artist': r'<item><type>666d6572</type><code>asar</code><length>\d+</length><data>(.*?)</data></item>',
-                'title': r'<item><type>666d6574</type><code>minm</code><length>\d+</length><data>(.*?)</data></item>',
-                'album': r'<item><type>666d6572</type><code>asal</code><length>\d+</length><data>(.*?)</data></item>'
-            }
-
-            # Extract metadata using regex patterns
-            metadata = {}
-            for key, pattern in patterns.items():
-                match = re.search(pattern, data)
-                if match:
-                    metadata[key] = match.group(1)
-                    logger.debug(f"Found {key}: {metadata[key]}")
-                else:
-                    logger.debug(f"No match found for {key}")
-
-            # Update only if we found any valid metadata
-            if metadata:
-                self.current_metadata.update({
-                    k: metadata.get(k, self.current_metadata[k])
-                    for k in ['artist', 'title', 'album']
-                })
-                logger.info(f"Updated metadata: {self.current_metadata}")
-            else:
-                logger.debug("No metadata found in current data")
-
-            return self.current_metadata
-
+            with open(self.metadata_pipe, 'rb') as pipe:
+                ready, _, _ = select.select([pipe], [], [], 0.5)
+                if ready:
+                    data = pipe.read(4096)
+                    if data:
+                        return self._parse_metadata(data)
         except Exception as e:
-            logger.error(f"Error parsing metadata: {e}")
-            return self.current_metadata
+            logger.error(f"Error reading metadata: {e}")
+
+        return self.current_metadata
 
     def is_playing(self):
         try:
@@ -87,43 +72,3 @@ class AudioController:
         except subprocess.CalledProcessError:
             logger.debug("shairport-sync process not found")
             return False
-
-    def get_current_metadata(self):
-        try:
-            if not os.path.exists(self.metadata_pipe):
-                logger.error(f"Metadata pipe not found at {self.metadata_pipe}")
-                return self.current_metadata
-
-            # Open pipe in non-blocking mode
-            import fcntl
-            fd = os.open(self.metadata_pipe, os.O_RDONLY | os.O_NONBLOCK)
-            try:
-                data = os.read(fd, 4096)
-                if data:
-                    logger.debug(f"Raw data from pipe: {data[:200]}")
-                    parsed = self._parse_metadata(data)
-                    logger.debug(f"Parsed metadata: {parsed}")
-                    return parsed
-                else:
-                    logger.debug("No data available in pipe")
-                    # Check if shairport-sync is actually writing to the pipe
-                    try:
-                        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
-                        if 'shairport-sync' not in result.stdout:
-                            logger.error("shairport-sync process not found")
-                        else:
-                            logger.debug("shairport-sync is running")
-                    except Exception as e:
-                        logger.error(f"Error checking shairport-sync: {e}")
-            except BlockingIOError:
-                logger.debug("No new metadata available")
-            except Exception as e:
-                logger.error(f"Error reading metadata pipe: {e}")
-                logger.exception("Detailed error:")
-            finally:
-                os.close(fd)
-
-        except Exception as e:
-            logger.error(f"Error in get_current_metadata: {e}")
-
-        return self.current_metadata
