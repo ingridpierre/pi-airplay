@@ -60,22 +60,7 @@ else
     fi
 fi
 
-# Create the metadata pipe if it doesn't exist
-if [ ! -e /tmp/shairport-sync-metadata ]; then
-    echo "Creating metadata pipe..."
-    if ! mkfifo /tmp/shairport-sync-metadata 2>/dev/null; then
-        echo "Failed to create pipe. Trying with sudo..."
-        sudo mkfifo /tmp/shairport-sync-metadata
-    fi
-    chmod 666 /tmp/shairport-sync-metadata 2>/dev/null || sudo chmod 666 /tmp/shairport-sync-metadata
-else
-    # Fix permissions if pipe exists but has wrong permissions
-    echo "Checking metadata pipe permissions..."
-    if [ ! -w "/tmp/shairport-sync-metadata" ]; then
-        echo "Fixing metadata pipe permissions..."
-        sudo chmod 666 /tmp/shairport-sync-metadata
-    fi
-fi
+# This section has been moved up near line 145
 
 # Check for AcoustID API key
 if [ ! -f "/etc/acoustid_api_key" ] && [ ! -f "$SCRIPT_DIR/config/acoustid_api_key" ]; then
@@ -127,45 +112,69 @@ fi
 # Check if port 5000 is already in use
 check_port
 
-# Check if shairport-sync is running
-if ! pgrep -x "shairport-sync" > /dev/null; then
-    echo "Starting shairport-sync..."
-    
-    # Check if IQaudio DAC is present and set output accordingly
-    if aplay -l | grep -q "IQaudIO"; then
-        echo "IQaudio DAC detected, using hardware device..."
-        # Get the card number of the IQaudio device
-        CARD_NUM=$(aplay -l | grep IQaudIO | head -n 1 | awk -F'card ' '{print $2}' | cut -d: -f1)
-        
-        if [ -n "$CARD_NUM" ]; then
-            echo "Using IQaudio DAC on card $CARD_NUM for audio output"
-            AUDIO_DEVICE="hw:$CARD_NUM"
-            shairport-sync -d "$AUDIO_DEVICE" -M -o pipe -- /tmp/shairport-sync-metadata &
-        else
-            echo "Could not determine IQaudio card number, using default output"
-            shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
-        fi
-    else
-        echo "No IQaudio DAC detected, using default output"
-        shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
+# Kill any existing shairport-sync processes
+if pgrep -x "shairport-sync" > /dev/null; then
+    echo "Stopping existing shairport-sync..."
+    sudo pkill -x "shairport-sync"
+    sleep 1
+fi
+
+# Clear any stale PID files
+for pidfile in "/var/run/shairport-sync.pid" "/run/shairport-sync/shairport-sync.pid" "/run/shairport-sync.pid"; do
+    if [ -f "$pidfile" ]; then
+        echo "Removing stale PID file: $pidfile"
+        sudo rm "$pidfile"
     fi
+done
+
+# Ensure the metadata pipe exists with correct permissions
+if [ -e /tmp/shairport-sync-metadata ]; then
+    echo "Setting metadata pipe permissions..."
+    sudo chmod 666 /tmp/shairport-sync-metadata
+else
+    echo "Creating metadata pipe..."
+    sudo mkfifo /tmp/shairport-sync-metadata
+    sudo chmod 666 /tmp/shairport-sync-metadata
+fi
+
+echo "Starting shairport-sync..."
+
+# Check if IQaudio DAC is present and set output accordingly
+if aplay -l | grep -q "IQaudIO"; then
+    echo "IQaudio DAC detected, using hardware device..."
+    # Get the card number of the IQaudio device
+    CARD_NUM=$(aplay -l | grep IQaudIO | head -n 1 | awk -F'card ' '{print $2}' | cut -d: -f1)
     
-    # Check if shairport-sync started successfully
-    sleep 2
-    if ! pgrep -x "shairport-sync" > /dev/null; then
-        echo "ERROR: shairport-sync failed to start!"
-        echo "Trying again with explicit audio output..."
-        shairport-sync -a "Pi-DAD" -o alsa -- -d hw:0 -M -o pipe -- /tmp/shairport-sync-metadata &
-        sleep 2
-        if ! pgrep -x "shairport-sync" > /dev/null; then
-            echo "WARNING: shairport-sync still could not start."
-            echo "AirPlay functionality may not be available."
-        fi
+    if [ -n "$CARD_NUM" ]; then
+        echo "Using IQaudio DAC on card $CARD_NUM for audio output"
+        # Use sudo to ensure it has permission to create PID file
+        # Try different syntaxes for the metadata pipe
+        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d hw:$CARD_NUM -M metadata=/tmp/shairport-sync-metadata &
     else
-        echo "shairport-sync started successfully"
+        echo "Could not determine IQaudio card number, using default output"
+        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d default -M metadata=/tmp/shairport-sync-metadata &
     fi
 else
-    echo "shairport-sync is already running"
+    echo "No IQaudio DAC detected, trying to use default output"
+    sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d default -M metadata=/tmp/shairport-sync-metadata &
+fi
+
+# Check if shairport-sync started successfully
+sleep 2
+if ! pgrep -x "shairport-sync" > /dev/null; then
+    echo "First attempt failed! Trying alternate configuration..."
+    # Try with more basic settings
+    sudo shairport-sync -a "Pi-DAD" -o alsa &
+    sleep 2
+    if ! pgrep -x "shairport-sync" > /dev/null; then
+        echo "WARNING: shairport-sync still could not start."
+        echo "AirPlay functionality may not be available."
+    else
+        echo "shairport-sync started with basic configuration"
+        echo "Metadata pipe won't be available for album art"
+    fi
+else
+    echo "shairport-sync started successfully"
 fi
 
 # Start the Pi-DAD application
