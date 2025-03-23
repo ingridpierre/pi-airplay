@@ -115,8 +115,7 @@ class AudioController:
 
     def _extract_dominant_color(self, artwork_data):
         """
-        Extract the dominant color from the artwork for background color
-        with enhanced visual impact.
+        Extract the dominant color from the artwork for background color.
         """
         try:
             image = Image.open(io.BytesIO(artwork_data))
@@ -124,53 +123,9 @@ class AudioController:
             temp_path = 'static/artwork/temp_cover.jpg'
             image.save(temp_path)
             color_thief = ColorThief(temp_path)
-            
-            # Get a larger palette for more color options
-            palette = color_thief.get_palette(color_count=6, quality=1)
-            
-            # Filter out very dark and very light colors
-            filtered_palette = []
-            for color in palette:
-                brightness = sum(color) / 3  # Average brightness
-                if 30 < brightness < 220:  # Avoid too dark (<30) or too light (>220)
-                    filtered_palette.append(color)
-            
-            # Use filtered palette or fall back to original if filtered is empty
-            working_palette = filtered_palette if filtered_palette else palette
-            
-            # Find the most saturated color for better visual impact
-            from colorsys import rgb_to_hsv
-            
-            best_color = working_palette[0]
-            max_saturation = 0
-            
-            for color in working_palette:
-                r, g, b = [x/255.0 for x in color]
-                h, s, v = rgb_to_hsv(r, g, b)
-                
-                # Combination of saturation and brightness for impact
-                impact_score = s * (0.7 + 0.3 * v)  # Weight saturation higher, but brightness matters too
-                
-                if impact_score > max_saturation:
-                    max_saturation = impact_score
-                    best_color = color
-            
-            # Additional enhancement: boost saturation and adjust brightness
-            from colorsys import rgb_to_hsv, hsv_to_rgb
-            r, g, b = [x/255.0 for x in best_color]
-            h, s, v = rgb_to_hsv(r, g, b)
-            
-            # Increase saturation by 30% and ensure brightness is in a good range
-            s = min(s * 1.3, 1.0)  # More aggressive saturation boost
-            v = max(min(v * 1.1, 0.9), 0.3)  # Keep brightness in a good range
-            
-            # Convert back to RGB
-            r, g, b = hsv_to_rgb(h, s, v)
-            enhanced_color = (int(r*255), int(g*255), int(b*255))
-            
+            dominant_color = color_thief.get_color(quality=1)
             # Convert RGB to hex
-            hex_color = '#{:02x}{:02x}{:02x}'.format(*enhanced_color)
-            logger.info(f"Extracted vibrant color: {hex_color} from album art")
+            hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant_color)
             return hex_color
         except Exception as e:
             logger.error(f"Error extracting dominant color: {e}")

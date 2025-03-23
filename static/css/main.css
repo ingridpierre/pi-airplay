@@ -20,22 +20,6 @@ body {
     transition: background-color 1s ease;
     height: 100vh;
     overflow: hidden;
-    position: relative;
-}
-
-/* Add gradient overlay to enhance the background color impact */
-body::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.8) 100%),
-                linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.6) 100%);
-    z-index: -1;
-    pointer-events: none;
-    mix-blend-mode: multiply;
 }
 
 /* App container */
@@ -68,14 +52,8 @@ body::before {
     max-width: 500px;
     height: auto;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     transition: all 0.5s ease;
-    animation: subtle-pulse 4s infinite alternate;
-}
-
-@keyframes subtle-pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.02); }
 }
 
 /* Track information */
@@ -182,14 +160,6 @@ body::before {
 }
 
 /* Default album art placeholder styles */
-img[src="/static/artwork/default_album.jpg"] {
-    opacity: 1;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.15);
-    filter: drop-shadow(0 0 10px rgba(100, 100, 255, 0.1));
-    animation: glow-pulse 3s infinite alternate;
-}
-
-@keyframes glow-pulse {
-    from { filter: drop-shadow(0 0 5px rgba(100, 100, 255, 0.1)); }
-    to { filter: drop-shadow(0 0 15px rgba(100, 100, 255, 0.3)); }
+img[src="/static/artwork/default_album.svg"] {
+    opacity: 0.7;
 }

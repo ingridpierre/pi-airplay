@@ -11,7 +11,7 @@
     <div id="app">
         <div id="music-info" class="centered">
             <div id="album-art-container">
-                <img id="album-art" src="/static/artwork/default_album.jpg" alt="Album Art">
+                <img id="album-art" src="/static/artwork/default_album.svg" alt="Album Art">
             </div>
             <div id="track-info">
                 <h1 id="track-title">Not Playing</h1>
@@ -48,7 +48,7 @@
             if (metadata.artwork) {
                 albumArt.src = metadata.artwork;
             } else {
-                albumArt.src = '/static/artwork/default_album.jpg';
+                albumArt.src = '/static/artwork/default_album.svg';
             }
             
             // Update background color
