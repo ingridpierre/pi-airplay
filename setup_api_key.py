@@ -5,8 +5,15 @@ This allows setting the API key without using the web interface.
 """
 
 import os
-import sys
 import argparse
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def setup_api_key(api_key, location='local'):
     """
@@ -20,54 +27,66 @@ def setup_api_key(api_key, location='local'):
         bool: True if successful, False otherwise
     """
     if not api_key or not api_key.strip():
-        print("Error: API key cannot be empty.")
+        logger.error("API key cannot be empty")
         return False
     
-    # Determine the file path based on the location
-    if location == 'local':
-        key_file = '.acoustid_api_key'
-    elif location == 'user':
-        key_file = os.path.expanduser('~/.acoustid_api_key')
-    elif location == 'system':
-        key_file = '/etc/acoustid_api_key'
-        # Check if we have permission to write to system location
-        if not os.access(os.path.dirname(key_file), os.W_OK):
-            print(f"Error: Cannot write to {key_file}. Try running with sudo or choose a different location.")
-            return False
-    else:
-        print(f"Error: Invalid location '{location}'. Use 'local', 'user', or 'system'.")
-        return False
+    api_key = api_key.strip()
     
-    # Write the API key to the file
     try:
-        with open(key_file, 'w') as f:
-            f.write(api_key.strip())
+        if location == 'local':
+            # Save in the current directory
+            with open('.acoustid_api_key', 'w') as f:
+                f.write(api_key)
+            logger.info("API key saved to .acoustid_api_key in the current directory")
+            
+        elif location == 'user':
+            # Save in the user's home directory
+            home_dir = os.path.expanduser('~')
+            key_path = os.path.join(home_dir, '.acoustid_api_key')
+            with open(key_path, 'w') as f:
+                f.write(api_key)
+            logger.info(f"API key saved to {key_path}")
+            
+        elif location == 'system':
+            # Save in the system-wide location
+            try:
+                with open('/etc/acoustid_api_key', 'w') as f:
+                    f.write(api_key)
+                logger.info("API key saved to /etc/acoustid_api_key")
+                
+                # Make it readable by all users
+                os.chmod('/etc/acoustid_api_key', 0o644)
+            except PermissionError:
+                logger.error("Permission denied. Run with sudo to save to system location.")
+                return False
+                
+        else:
+            logger.error(f"Invalid location: {location}")
+            return False
+            
+        # Also set environment variable for current session
+        os.environ['ACOUSTID_API_KEY'] = api_key
+        logger.info("API key set as environment variable ACOUSTID_API_KEY")
         
-        # Set appropriate permissions
-        if location in ('user', 'system'):
-            os.chmod(key_file, 0o600)  # Make the file readable only by the owner
-        
-        print(f"AcoustID API key has been saved to {key_file}")
         return True
+        
     except Exception as e:
-        print(f"Error saving API key: {e}")
+        logger.error(f"Error saving API key: {e}")
         return False
 
 def main():
-    parser = argparse.ArgumentParser(description='Set up the AcoustID API key for music recognition')
-    parser.add_argument('api_key', help='Your AcoustID API key from https://acoustid.org/')
-    parser.add_argument('--location', choices=['local', 'user', 'system'], default='local',
-                       help='Where to store the API key: in the current directory (local), ' +
-                            'user\'s home directory (user), or system-wide (system)')
+    parser = argparse.ArgumentParser(description='Set up the AcoustID API key for Pi-DAD')
+    parser.add_argument('api_key', help='The AcoustID API key')
+    parser.add_argument('--location', choices=['local', 'user', 'system'], 
+                        default='local', help='Where to store the API key')
     
     args = parser.parse_args()
     
     if setup_api_key(args.api_key, args.location):
-        print("API key setup complete.")
-        sys.exit(0)
+        print("API key set up successfully.")
     else:
-        print("API key setup failed.")
-        sys.exit(1)
+        print("Failed to set up API key.")
+        exit(1)
 
 if __name__ == '__main__':
     main()
