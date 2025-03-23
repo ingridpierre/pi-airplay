@@ -1,0 +1,57 @@
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_a52.c:1001:(_snd_pcm_a52_open) a52 is only for playback
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=6,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM iec958:{AES0 0x6 AES1 0x82 AES2 0x0 AES3 0x2 CARD 0}
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+2025-03-23 01:10:42,283 - utils.music_recognition - INFO - Checking audio devices with arecord...
+2025-03-23 01:10:42,300 - utils.music_recognition - INFO - Available audio devices:
+**** List of CAPTURE Hardware Devices ****
+card 3: Device [USB PnP Sound Device], device 0: USB Audio [USB Audio]
+  Subdevices: 0/1
+  Subdevice #0: subdevice #0
+2025-03-23 01:10:42,301 - utils.music_recognition - INFO - Found USB audio device in arecord output
+2025-03-23 01:10:42,301 - utils.music_recognition - INFO - Testing direct recording with arecord...
+2025-03-23 01:10:52,796 - __main__ - INFO - Client disconnected
+192.168.4.91 - - [23/Mar/2025 01:10:52] "GET /socket.io/?EIO=4&transport=websocket&sid=vf2ZzyrGV0VYPdYmAAAI HTTP/1.1" 200 0 45.029292
+2025-03-23 01:10:53,553 - utils.music_recognition - INFO - Successfully recorded test audio with arecord
+2025-03-23 01:10:53,556 - utils.music_recognition - INFO - Found microphone: pulse
+2025-03-23 01:10:53,556 - utils.music_recognition - INFO - Found microphone: default
+2025-03-23 01:10:53,557 - utils.music_recognition - INFO - Recording 10 seconds of audio...
+192.168.4.91 - - [23/Mar/2025 01:10:53] "GET /socket.io/?EIO=4&transport=polling&t=PN1QJdn HTTP/1.1" 200 300 0.015602
+2025-03-23 01:10:53,823 - __main__ - INFO - Client connected
+192.168.4.91 - - [23/Mar/2025 01:10:53] "POST /socket.io/?EIO=4&transport=polling&t=PN1QJf3&sid=eXCHPC7l0cEasONcAAAK HTTP/1.1" 200 222 0.009884
+192.168.4.91 - - [23/Mar/2025 01:10:53] "GET /socket.io/?EIO=4&transport=polling&t=PN1QJfA&sid=eXCHPC7l0cEasONcAAAK HTTP/1.1" 200 213 0.001180
+(11078) accepted ('192.168.4.91', 35628)
+192.168.4.91 - - [23/Mar/2025 01:10:53] "GET /socket.io/?EIO=4&transport=polling&t=PN1QJgP&sid=eXCHPC7l0cEasONcAAAK HTTP/1.1" 200 181 0.000403
+2025-03-23 01:11:03,721 - utils.music_recognition - ERROR - Error during recording stream: sample width not specified
+2025-03-23 01:11:03,723 - utils.music_recognition - INFO - SIMULATION MODE: Pretending to recognize Bohemian Rhapsody by Queen
+2025-03-23 01:11:04,103 - utils.music_recognition - INFO - No cover art found for album: 1476f824-ced9-4645-953c-3ba704568ada
+2025-03-23 01:11:04,103 - utils.music_recognition - INFO - Updated metadata with simulated song: Bohemian Rhapsody by Queen
