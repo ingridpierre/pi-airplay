@@ -199,15 +199,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     try:
-        logger.info(f"Starting Flask application on port {args.port}...")
+        logger.info(f"Starting Pi-AirPlay on port {args.port}...")
         
         # Start the metadata update thread
         metadata_thread.start()
         
         # Use 0.0.0.0 to ensure the server is accessible externally
-        # Set use_reloader to False since we're in a thread
-        socketio.run(app, host='0.0.0.0', port=args.port, debug=True, 
-                    use_reloader=False, log_output=True, allow_unsafe_werkzeug=True)
+        # Set debug=False to avoid common issues with Flask debugging
+        socketio.run(app, host='0.0.0.0', port=args.port, debug=False, 
+                    use_reloader=False, log_output=True)
                     
     except Exception as e:
         logger.error(f"Failed to start Pi-AirPlay: {e}")
