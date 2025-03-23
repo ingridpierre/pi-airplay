@@ -6,7 +6,7 @@ Pi-AirPlay transforms your Raspberry Pi with IQaudio DAC into a high-quality Air
 
 - **AirPlay Integration**: Stream audio from iOS devices, macOS, and iTunes to your Raspberry Pi
 - **Metadata Display**: View track information, album art, and playback status in real-time
-- **Adaptive UI**: Background color adapts to the dominant color in the album artwork
+- **Clean UI Design**: Elegant dark theme that complements any album artwork
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **High-Quality Audio**: Uses your IQaudio DAC for superior sound quality
 

@@ -6,15 +6,15 @@ This document contains common issues and their solutions for the Pi-AirPlay syst
 
 The following important fixes have been implemented today:
 
-1. **Port Conflict Resolution**: Fixed conflicts between the old Pi-DAD app (running on port 5000) and the new Pi-AirPlay app (running on port 8000) to ensure both AirPlay streaming and web interface work correctly.
+1. **Removed ColorThief Dependency**: Completely removed the dynamic background color functionality that required the `colorthief` package. Now uses a fixed background color for all album artwork, improving stability and eliminating installation issues.
 
-2. **Missing Package Fix**: Added the missing `colorthief` Python package which was causing the web interface to fail with "ModuleNotFoundError: No module named 'colorthief'".
+2. **Port Conflict Resolution**: Fixed conflicts between the old Pi-DAD app (running on port 5000) and the new Pi-AirPlay app (running on port 8000) to ensure both AirPlay streaming and web interface work correctly.
 
 3. **Consolidated Startup Scripts**: Updated `pi_airplay.sh` and `install_pi_airplay.sh` to include all necessary fixes in a streamlined manner. No longer need multiple fix scripts.
 
 4. **Improved Metadata Pipe Handling**: Added better error handling for the metadata pipe creation, with proper permissions (666) and cleanup.
 
-5. **Pre-Runtime Dependency Check**: Added automatic Python package checking before startup to detect missing dependencies like `colorthief`.
+5. **Simplified Web Interface**: Improved reliability by removing unnecessary visual processing that caused errors on some Raspberry Pi configurations.
 
 ## Recent Improvements
 
@@ -24,7 +24,7 @@ The following improvements have been made to address common issues:
 
 2. **Reduced Update Latency**: Metadata updates now refresh every 1 second instead of 5 seconds for more responsive UI updates.
 
-3. **Background Color Adaptation**: The web interface now extracts dominant colors from album art to create a cohesive visual experience.
+3. **Simplified UI Design**: The web interface uses a consistent dark theme that works well with all album artwork and requires fewer dependencies.
 
 4. **Improved Process Detection**: Better distinction between shairport-sync running vs. active playback status.
 
@@ -108,10 +108,12 @@ Web interface fails to start due to missing Python packages.
 The updated script now checks for dependencies at startup. To manually install packages:
 
 ```bash
-pip3 install flask flask-socketio eventlet pillow colorthief requests numpy
+pip3 install flask flask-socketio eventlet pillow requests numpy
 ```
 
-Or you can use the new dependency checker in the startup script:
+Note: The `colorthief` package is no longer required with the simplified interface design.
+
+You can use the dependency checker in the startup script:
 ```bash
 ./pi_airplay.sh
 ```

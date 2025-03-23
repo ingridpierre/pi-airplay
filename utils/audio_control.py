@@ -17,14 +17,6 @@ from pathlib import Path
 from datetime import datetime
 from PIL import Image, ImageDraw
 
-# Fallback for missing colorthief
-try:
-    from colorthief import ColorThief
-    has_colorthief = True
-except ImportError:
-    has_colorthief = False
-    print("Warning: colorthief package not found, using fallback colors")
-
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -122,29 +114,9 @@ class AudioController:
 
     def _extract_dominant_color(self, artwork_data):
         """
-        Extract the dominant color from the artwork for background color.
-        Falls back to a default color if colorthief is not available.
+        Return a fixed color for the background, no color extraction needed.
         """
-        try:
-            image = Image.open(io.BytesIO(artwork_data))
-            
-            if has_colorthief:
-                # Use colorthief if available
-                temp_path = 'static/artwork/temp_cover.jpg'
-                image.save(temp_path)
-                color_thief = ColorThief(temp_path)
-                dominant_color = color_thief.get_color(quality=1)
-                # Convert RGB to hex
-                hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant_color)
-                return hex_color
-            else:
-                # Simple fallback - use a default dark color for all artwork
-                logger.warning("ColorThief not available - using fallback background color")
-                return "#121212"  # Default dark color
-                
-        except Exception as e:
-            logger.error(f"Error extracting dominant color: {e}")
-            return "#121212"  # Default dark background
+        return "#121212"  # Default dark background
 
     def read_raw_pipe_data(self, max_chunks=5):
         """
