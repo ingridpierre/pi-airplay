@@ -54,7 +54,6 @@ check_python_package() {
 
 # Check essential packages
 check_python_package "flask"
-check_python_package "colorthief"
 check_python_package "socketio"
 check_python_package "eventlet"
 
@@ -65,12 +64,12 @@ if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     
     if [[ "$INSTALL_PKGS" == "y" || "$INSTALL_PKGS" == "Y" ]]; then
         echo "Installing missing Python packages..."
-        pip3 install flask flask-socketio eventlet pillow colorthief requests numpy
+        pip3 install flask flask-socketio eventlet pillow requests numpy
         
         if [ $? -eq 0 ]; then
             show_progress "Python packages installed successfully"
         else
-            show_error "Failed to install packages" "Please run: sudo pip3 install flask flask-socketio eventlet pillow colorthief"
+            show_error "Failed to install packages" "Please run: sudo pip3 install flask flask-socketio eventlet pillow"
         fi
     else
         show_error "Missing dependencies" "Please install required packages before running this script"
