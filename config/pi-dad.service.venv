@@ -1,0 +1,14 @@
+[Unit]
+Description=Pi-DAD (Raspberry Pi Digital Audio Display)
+After=network.target
+
+[Service]
+ExecStart=/bin/bash -c 'source INSTALL_PATH/venv/bin/activate && python INSTALL_PATH/app.py'
+WorkingDirectory=INSTALL_PATH
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
