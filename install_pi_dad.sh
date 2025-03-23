@@ -66,27 +66,34 @@ fi
 # Restart shairport-sync to apply configuration
 systemctl restart shairport-sync
 
+# Create application directory and copy files
+echo -e "\n${BOLD}${GREEN}Creating application directory and copying files...${RESET}"
+mkdir -p /opt/pi-dad
+cp -r "$SCRIPT_DIR/app.py" "$SCRIPT_DIR/utils" "$SCRIPT_DIR/static" "$SCRIPT_DIR/templates" /opt/pi-dad/
+chown -R pi:pi /opt/pi-dad
+
 # Install Python dependencies
 echo -e "\n${BOLD}${GREEN}Installing Python dependencies...${RESET}"
 
 if [[ "$install_type" == "1" ]]; then
-    # System-wide installation
-    pip3 install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+    # System-wide installation (using virtual env to avoid externally-managed-environment error)
+    echo "Creating system virtual environment in /opt/pi-dad-venv..."
+    python3 -m venv /opt/pi-dad-venv
+    /opt/pi-dad-venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
     
-    # Copy the system service file
-    cp -f "$SCRIPT_DIR/config/pi-dad.service.system" /etc/systemd/system/pi-dad.service
+    # Modify the service file for the new venv location
+    sed 's|/usr/bin/python3|/opt/pi-dad-venv/bin/python|g' "$SCRIPT_DIR/config/pi-dad.service.system" > /etc/systemd/system/pi-dad.service
     
 elif [[ "$install_type" == "2" ]]; then
     # Virtual environment installation
-    if [ ! -d "$SCRIPT_DIR/venv" ]; then
-        python3 -m venv "$SCRIPT_DIR/venv"
-    fi
+    echo "Creating virtual environment in /opt/pi-dad/venv..."
+    python3 -m venv /opt/pi-dad/venv
     
     # Install dependencies in the virtual environment
-    "$SCRIPT_DIR/venv/bin/pip" install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+    /opt/pi-dad/venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
     
-    # Copy the venv service file
-    cp -f "$SCRIPT_DIR/config/pi-dad.service.venv" /etc/systemd/system/pi-dad.service
+    # Copy the venv service file and update it with correct paths
+    sed 's|/opt/pi-dad/venv|/opt/pi-dad/venv|g' "$SCRIPT_DIR/config/pi-dad.service.venv" > /etc/systemd/system/pi-dad.service
 fi
 
 # Reload systemd
