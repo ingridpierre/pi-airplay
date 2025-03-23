@@ -6,6 +6,29 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "$SCRIPT_DIR"
 
+# Function to check if port 5000 is already in use
+check_port() {
+    if command -v lsof &> /dev/null; then
+        if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null ; then
+            echo "WARNING: Port 5000 is already in use!"
+            echo "Would you like to kill the process using this port? (y/n)"
+            read -r response
+            if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+                echo "Stopping process on port 5000..."
+                sudo kill $(lsof -t -i:5000)
+                sleep 1
+            else
+                echo "Please stop the process using port 5000 manually before starting Pi-DAD."
+                echo "You can find the process with: lsof -i :5000"
+                echo "Then stop it with: sudo kill <PID>"
+                exit 1
+            fi
+        fi
+    else
+        echo "lsof command not found - skipping port check."
+    fi
+}
+
 # Check if we should use virtual environment
 if [ -d "./venv" ]; then
     echo "Using virtual environment..."
@@ -40,14 +63,75 @@ fi
 # Create the metadata pipe if it doesn't exist
 if [ ! -e /tmp/shairport-sync-metadata ]; then
     echo "Creating metadata pipe..."
-    mkfifo /tmp/shairport-sync-metadata
-    chmod 666 /tmp/shairport-sync-metadata
+    if ! mkfifo /tmp/shairport-sync-metadata 2>/dev/null; then
+        echo "Failed to create pipe. Trying with sudo..."
+        sudo mkfifo /tmp/shairport-sync-metadata
+    fi
+    chmod 666 /tmp/shairport-sync-metadata 2>/dev/null || sudo chmod 666 /tmp/shairport-sync-metadata
+else
+    # Fix permissions if pipe exists but has wrong permissions
+    echo "Checking metadata pipe permissions..."
+    if [ ! -w "/tmp/shairport-sync-metadata" ]; then
+        echo "Fixing metadata pipe permissions..."
+        sudo chmod 666 /tmp/shairport-sync-metadata
+    fi
 fi
+
+# Check for AcoustID API key
+if [ ! -f "/etc/acoustid_api_key" ] && [ ! -f "$SCRIPT_DIR/config/acoustid_api_key" ]; then
+    echo "No AcoustID API key found. Music recognition will run in simulation mode."
+    echo "To set up an API key, visit http://[your-pi-ip]:5000/setup after starting Pi-DAD."
+    echo "or create /etc/acoustid_api_key with your API key."
+fi
+
+# Handle audio device configuration
+echo "Checking audio devices..."
+if command -v arecord &> /dev/null; then
+    if ! arecord -l | grep -q "USB"; then
+        echo "WARNING: No USB audio device detected! Music recognition may not work properly."
+        echo "Connect a USB microphone and try again."
+    else
+        echo "USB audio device detected."
+        # Create audio configuration if needed
+        if [ ! -f "/etc/asound.conf" ]; then
+            echo "Would you like to create a basic ALSA configuration for your USB audio device? (y/n)"
+            read -r create_alsa_conf
+            if [[ "$create_alsa_conf" == "y" || "$create_alsa_conf" == "Y" ]]; then
+                # Get the card number of the USB device
+                CARD_NUM=$(arecord -l | grep USB | head -n 1 | awk -F'card ' '{print $2}' | cut -d: -f1)
+                if [ -n "$CARD_NUM" ]; then
+                    echo "Creating ALSA configuration for card $CARD_NUM..."
+                    sudo bash -c "cat > /etc/asound.conf << EOL
+# Use the USB audio device as default
+pcm.!default {
+    type hw
+    card $CARD_NUM
+}
+
+ctl.!default {
+    type hw
+    card $CARD_NUM
+}
+EOL"
+                    echo "ALSA configuration created."
+                else
+                    echo "Could not determine USB audio card number. Skipping ALSA configuration."
+                fi
+            fi
+        fi
+    fi
+else
+    echo "arecord command not found - skipping audio device check."
+fi
+
+# Check if port 5000 is already in use
+check_port
 
 # Check if shairport-sync is running
 if ! pgrep -x "shairport-sync" > /dev/null; then
     echo "Starting shairport-sync..."
-    shairport-sync &
+    shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
+    sleep 1
 else
     echo "shairport-sync is already running"
 fi

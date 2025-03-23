@@ -186,10 +186,31 @@ http://[your-pi-ip-address]:5000/setup
 
 - **No Sound**: Ensure your audio device is properly configured in Raspberry Pi OS. You may need to set your audio output device using `raspi-config`.
 
+- **ALSA Errors (error -524 or Unknown PCM)**: These are related to audio device configuration issues. Create or update your ALSA configuration:
+  ```bash
+  # Create or edit ALSA config file
+  sudo nano /etc/asound.conf
+  
+  # Add these lines (change the card number to match your USB audio device)
+  # You can find your card number with 'arecord -l'
+  pcm.!default {
+      type hw
+      card 4  # Replace with your actual card number
+  }
+  
+  ctl.!default {
+      type hw
+      card 4  # Should match the card number above
+  }
+  ```
+
 - **Music Recognition Not Working**: Make sure you've set up your AcoustID API key (via the installation script or the web interface at `/setup`). Also check that your microphone is properly connected and recognized by the system:
   ```bash
   # List audio input devices
   arecord -l
+  
+  # Test microphone recording (replace X with your card number)
+  arecord -D hw:X,0 -d 5 -f cd test.wav
   ```
 
 - **Service Won't Start**: Check the service status and logs with:
