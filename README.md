@@ -85,6 +85,55 @@ The sync_log.py utility is particularly useful when working with multiple Replit
 
 Please refer to `setup_instructions.md` for detailed setup and installation instructions for Raspberry Pi deployment.
 
+### Setting up AcoustID API Key
+
+The music recognition feature requires an AcoustID API key. You can obtain one for free from [acoustid.org](https://acoustid.org/):
+
+1. Create an account at [acoustid.org/login](https://acoustid.org/login)
+2. After logging in, go to [acoustid.org/applications](https://acoustid.org/applications)
+3. Register a new application (e.g., "Pi Music Display")
+4. Copy your API key
+
+There are three ways to set up your API key:
+
+#### Method 1: Using the Setup Script (Recommended)
+
+A setup script is included to easily configure your API key:
+
+```bash
+# Set up API key in the local directory
+python setup_api_key.py YOUR_API_KEY_HERE
+
+# Or set it up in your user directory (recommended)
+python setup_api_key.py --location user YOUR_API_KEY_HERE
+
+# Or set it up system-wide (requires sudo)
+sudo python setup_api_key.py --location system YOUR_API_KEY_HERE
+```
+
+#### Method 2: Using the Web Interface
+
+1. Navigate to the setup page at `http://YOUR_PI_IP:5000/setup`
+2. Enter your AcoustID API key in the form
+3. Click "Save"
+
+#### Method 3: Manual File Creation
+
+You can manually create a file containing your API key:
+
+```bash
+# Option 1: In the project directory
+echo "YOUR_API_KEY_HERE" > .acoustid_api_key
+
+# Option 2: In your home directory
+echo "YOUR_API_KEY_HERE" > ~/.acoustid_api_key
+chmod 600 ~/.acoustid_api_key
+
+# Option 3: System-wide (requires sudo)
+echo "YOUR_API_KEY_HERE" | sudo tee /etc/acoustid_api_key
+sudo chmod 600 /etc/acoustid_api_key
+```
+
 ## License
 
 [License information to be determined]

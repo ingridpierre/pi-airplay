@@ -1,0 +1,19 @@
+[Unit]
+Description=Music Display with AirPlay and Recognition
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/music-display
+# Use absolute path to Python in virtual environment
+ExecStart=/home/pi/music-display/.venv/bin/python /home/pi/music-display/app.py
+# If you want to use system Python instead, comment the line above and uncomment this:
+# ExecStart=/usr/bin/python3 /home/pi/music-display/app.py
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=music-display
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

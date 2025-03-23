@@ -29,7 +29,36 @@ logging.basicConfig(level=logging.INFO,
 musicbrainzngs.set_useragent("PiAudioDisplay", "1.0", "https://github.com/yourusername/pi-audio-display")
 
 # AcoustID API key - This needs to be obtained from https://acoustid.org/
-ACOUSTID_API_KEY = None  # Will be set from environment variable
+ACOUSTID_API_KEY = None  # Will be set from environment variable or file
+
+def load_api_key_from_file():
+    """Load AcoustID API key from file."""
+    global ACOUSTID_API_KEY
+    
+    # Possible locations for API key file
+    key_file_paths = [
+        '.acoustid_api_key',  # Current directory
+        os.path.expanduser('~/.acoustid_api_key'),  # User's home directory
+        '/etc/acoustid_api_key'  # System-wide location
+    ]
+    
+    # Try to load from each location
+    for path in key_file_paths:
+        try:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    key = f.read().strip()
+                    if key:
+                        logger.info(f"Loaded AcoustID API key from {path}")
+                        ACOUSTID_API_KEY = key
+                        return True
+        except Exception as e:
+            logger.error(f"Error reading API key from {path}: {e}")
+    
+    return False
+
+# Try to load API key from file
+load_api_key_from_file()
 
 class MusicRecognitionService:
     """Service for recognizing music from microphone input and retrieving metadata."""
@@ -61,9 +90,12 @@ class MusicRecognitionService:
         self.recognition_cooldown = 30  # seconds between recognition attempts
         self.static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
         
-        # Set API key from environment variable
+        # Set API key from environment variable if not already loaded from file
         global ACOUSTID_API_KEY
-        ACOUSTID_API_KEY = os.environ.get('ACOUSTID_API_KEY')
+        if not ACOUSTID_API_KEY:
+            ACOUSTID_API_KEY = os.environ.get('ACOUSTID_API_KEY')
+            if ACOUSTID_API_KEY:
+                logger.info("Using AcoustID API key from environment variable")
         
         # Ensure artwork directory exists
         os.makedirs(os.path.join(self.static_folder, 'artwork'), exist_ok=True)

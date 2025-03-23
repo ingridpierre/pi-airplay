@@ -55,13 +55,43 @@ sudo reboot
 
 ### 4. Install Python Dependencies
 
-```bash
-# Create a virtual environment (optional but recommended)
-python3 -m venv venv
-source venv/bin/activate
+For newer versions of Raspberry Pi OS (Bullseye or Bookworm), you'll need to use a virtual environment to avoid the "externally-managed-environment" error:
 
-# Install required packages
-pip install flask flask-socketio eventlet pyaudio numpy librosa pydub pyacoustid musicbrainzngs colorthief pillow requests sounddevice
+```bash
+# Install required build dependencies first
+sudo apt install -y build-essential libffi-dev libasound2-dev portaudio19-dev ffmpeg libchromaprint-dev pkg-config libopenblas-dev
+
+# Create a virtual environment (important for newer Pi OS versions)
+sudo apt install -y python3-venv python3-dev
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Upgrade pip
+pip install --upgrade pip
+
+# Install packages one by one for better tracking
+pip install flask flask-socketio eventlet
+pip install numpy  # Install first as many packages depend on it
+pip install pillow requests
+pip install pyaudio
+pip install pydub
+pip install musicbrainzngs
+pip install colorthief
+
+# Install slower/larger packages last
+pip install sounddevice
+pip install librosa  # This might take a while on Raspberry Pi
+pip install pyacoustid
+```
+
+If you're using an older version of Raspberry Pi OS and prefer system-wide installation, you can try:
+
+```bash
+sudo apt update
+sudo apt install -y python3-flask python3-flask-socketio python3-eventlet python3-pyaudio python3-numpy python3-pydub python3-requests python3-sounddevice python3-pillow
+
+# Install packages that aren't available via apt
+sudo pip3 install pyacoustid musicbrainzngs colorthief librosa
 ```
 
 ### 5. Get an AcoustID API Key
