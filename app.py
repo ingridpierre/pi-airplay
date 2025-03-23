@@ -216,7 +216,9 @@ def set_api_key():
         os.environ['ACOUSTID_API_KEY'] = api_key
         
         # Update the API key in the music recognition service
-        music_recognition.ACOUSTID_API_KEY = api_key
+        # Access the global variable in the music_recognition module
+        import utils.music_recognition
+        utils.music_recognition.ACOUSTID_API_KEY = api_key
         
         return jsonify({"status": "success", "message": "API key set successfully"})
     except Exception as e:
