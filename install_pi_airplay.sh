@@ -45,7 +45,7 @@ fi
 
 # Step 2: Install required dependencies
 echo -e "\n${BOLD}Step 2:${NC} Installing dependencies..."
-apt install -y shairport-sync python3-pip python3-flask python3-venv python3-eventlet
+apt install -y shairport-sync python3-pip python3-flask python3-venv python3-eventlet python3-socketio
 if [ $? -eq 0 ]; then
   show_progress "Dependencies installed"
 else
@@ -61,7 +61,7 @@ cd /opt/pi-airplay
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install flask flask-socketio eventlet pillow
+pip install flask flask-socketio eventlet pillow colorthief
 if [ $? -eq 0 ]; then
   show_progress "Python virtual environment set up"
 else

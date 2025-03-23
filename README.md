@@ -30,6 +30,20 @@ Once installed, Pi-AirPlay will start automatically on boot.
 
 If you prefer to install components manually:
 
+
+## Understanding the Scripts
+
+This project includes several scripts with specific purposes:
+
+1. **pi_airplay.sh** - The main script to run after installation. This starts the AirPlay receiver and web interface.
+2. **install_pi_airplay.sh** - One-time installation script that sets up all dependencies and services.
+3. **run_pi_airplay.sh** - A testing/development script that runs the service temporarily without installation.
+4. **app_airplay.py** - The core Python application (not meant to be run directly).
+5. **alt_port_fix.sh** - Helper script to resolve port conflicts.
+
+For normal use, run the installation script once, then use pi_airplay.sh to start the service (or rely on the automatic startup if enabled).
+
+
 1. Clone this repository to your Raspberry Pi:
    ```bash
    git clone https://github.com/yourusername/pi-airplay.git
