@@ -83,8 +83,14 @@ def metadata_update_thread():
                 except OSError as e:
                     logger.error(f"Error checking pipe permissions: {e}")
                     
-            # Check for shairport-sync process
-            shairport_running = bool(os.popen('pgrep shairport-sync').read().strip())
+            # Check for shairport-sync process more reliably, including ongoing restarts
+            shairport_running = False
+            try:
+                # Look for any running shairport-sync command or a bash loop running it
+                check_process = os.popen('ps aux | grep -v grep | grep -E "shairport-sync|while true; do.*shairport-sync"').read().strip()
+                shairport_running = bool(check_process)
+            except Exception as e:
+                logger.error(f"Error checking for shairport-sync process: {e}")
             
             metadata['_debug'] = {
                 'pipe_exists': pipe_exists,
@@ -159,8 +165,14 @@ def now_playing():
             except OSError as e:
                 logger.error(f"Error checking pipe permissions: {e}")
                 
-        # Check for shairport-sync process
-        shairport_running = bool(os.popen('pgrep shairport-sync').read().strip())
+        # Check for shairport-sync process more reliably, including ongoing restarts
+        shairport_running = False
+        try:
+            # Look for any running shairport-sync command or a bash loop running it
+            check_process = os.popen('ps aux | grep -v grep | grep -E "shairport-sync|while true; do.*shairport-sync"').read().strip()
+            shairport_running = bool(check_process)
+        except Exception as e:
+            logger.error(f"Error checking for shairport-sync process: {e}")
         
         metadata['_debug'] = {
             'pipe_exists': pipe_exists,
@@ -208,7 +220,7 @@ def debug_interface():
     shairport_info = {
         'installed': bool(os.popen('command -v shairport-sync').read().strip()),
         'version': os.popen('shairport-sync -V 2>/dev/null || echo "Not installed"').read().strip(),
-        'running': bool(os.popen('pgrep shairport-sync').read().strip()),
+        'running': bool(os.popen('ps aux | grep -v grep | grep -E "shairport-sync|while true; do.*shairport-sync"').read().strip()),
         'processes': os.popen('ps aux | grep shairport-sync | grep -v grep').read().strip(),
         'config_exists': os.path.exists('/usr/local/etc/shairport-sync.conf'),
         'config_sample': os.popen('cat /usr/local/etc/shairport-sync.conf 2>/dev/null | head -n 20 || echo "Config not found"').read().strip()
@@ -326,7 +338,7 @@ if __name__ == '__main__':
     
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Pi-AirPlay: Raspberry Pi AirPlay Receiver')
-    parser.add_argument('--port', type=int, default=8080, help='Port to run the web server on (default: 8080)')
+    parser.add_argument('--port', type=int, default=8000, help='Port to run the web server on (default: 8000)')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='Host address to bind to (default: 0.0.0.0)')
     args = parser.parse_args()
     

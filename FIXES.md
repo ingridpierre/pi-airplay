@@ -16,6 +16,8 @@ The following improvements have been made to address common issues:
 
 5. **Standardized AirPlay Device Name**: The AirPlay device name has been standardized to "DAD" across all configuration files to prevent multiple device entries appearing on your network.
 
+6. **Standardized Web Port**: The web interface port has been standardized to 8000 across all configuration files and scripts to ensure consistent access.
+
 ## Port Conflicts
 
 ### Problem
@@ -24,7 +26,7 @@ The default configuration uses port 5000 for both shairport-sync and the Flask w
 ### Solution
 Run the `alt_port_fix.sh` script which:
 1. Configures shairport-sync to use port 5000 (AirPlay default)
-2. Configures the web interface to use port 8080
+2. Configures the web interface to use port 8000
 3. Correctly sets permissions for the metadata pipe
 
 ```bash
