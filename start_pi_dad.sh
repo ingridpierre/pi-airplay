@@ -15,8 +15,28 @@ check_port() {
             read -r response
             if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
                 echo "Stopping process on port 5000..."
-                sudo kill $(lsof -t -i:5000)
-                sleep 1
+                # Get all PIDs using port 5000
+                PIDS=$(lsof -t -i:5000)
+                if [ -n "$PIDS" ]; then
+                    echo "Found processes using port 5000: $PIDS"
+                    # First try gentle SIGTERM
+                    sudo kill $PIDS
+                    sleep 2
+                    
+                    # Check if any processes are still using the port
+                    if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null; then
+                        echo "Processes still running, using SIGKILL..."
+                        sudo kill -9 $PIDS
+                        sleep 2
+                        
+                        # Final check
+                        if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null; then
+                            echo "ERROR: Failed to free port 5000. Please reboot your system and try again."
+                            exit 1
+                        fi
+                    fi
+                    echo "Port 5000 is now free."
+                fi
             else
                 echo "Please stop the process using port 5000 manually before starting Pi-DAD."
                 echo "You can find the process with: lsof -i :5000"
@@ -148,15 +168,15 @@ if aplay -l | grep -q "IQaudIO"; then
     if [ -n "$CARD_NUM" ]; then
         echo "Using IQaudio DAC on card $CARD_NUM for audio output"
         # Use sudo to ensure it has permission to create PID file
-        # Try different syntaxes for the metadata pipe
-        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d hw:$CARD_NUM -M metadata=/tmp/shairport-sync-metadata &
+        # Try correct metadata pipe syntax with hw device
+        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d hw:$CARD_NUM &
     else
         echo "Could not determine IQaudio card number, using default output"
-        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d default -M metadata=/tmp/shairport-sync-metadata &
+        sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d default &
     fi
 else
     echo "No IQaudio DAC detected, trying to use default output"
-    sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -- -d default -M metadata=/tmp/shairport-sync-metadata &
+    sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d default &
 fi
 
 # Check if shairport-sync started successfully
@@ -172,11 +192,11 @@ if ! pgrep "shairport-sync" > /dev/null; then
     if [[ "$SHAIRPORT_VERSION" == 3.* ]]; then
         # Version 3.x syntax
         echo "Using version 3.x command syntax"
-        sudo shairport-sync -a "Pi-DAD" -o alsa -- -d default -m pipe=/tmp/shairport-sync-metadata &
+        sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d default &
     else
-        # Try version 4.x syntax or basic configuration
-        echo "Using version 4.x or basic command syntax"
-        sudo shairport-sync -a "Pi-DAD" -o alsa &
+        # Try version 4.x syntax
+        echo "Using version 4.x command syntax"
+        sudo shairport-sync -a "Pi-DAD" -o alsa --metadata-pipename=/tmp/shairport-sync-metadata -- -d default &
     fi
     
     sleep 2
@@ -187,16 +207,16 @@ if ! pgrep "shairport-sync" > /dev/null; then
         sudo systemctl stop shairport-sync 2>/dev/null || true
         sudo killall shairport-sync 2>/dev/null || true
         sleep 1
-        echo "2. Starting with no output redirection"
-        sudo shairport-sync -a "Pi-DAD" -o alsa &
+        echo "2. Starting with minimal configuration"
+        sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata &
         sleep 2
         
         if ! pgrep "shairport-sync" > /dev/null; then
             echo "ERROR: AirPlay functionality is not available!"
             echo "Please check your shairport-sync installation."
         else
-            echo "shairport-sync finally started with minimal configuration."
-            echo "Metadata and album artwork won't be available."
+            echo "shairport-sync started with minimal configuration."
+            echo "Metadata pipe is configured, but artwork display may be limited."
         fi
     else
         echo "shairport-sync started with alternate configuration"
