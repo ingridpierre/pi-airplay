@@ -1,23 +1,18 @@
-#!/usr/bin/env python3
-"""
-Pi-DAD: Raspberry Pi Digital Audio Display
-A simplified AirPlay receiver with music recognition capabilities.
-"""
-
 from flask import Flask, render_template, jsonify, request
 import logging
 import os
+import select
+from os import O_RDONLY, O_NONBLOCK
+from flask_socketio import SocketIO
 import threading
 import time
-from flask_socketio import SocketIO
-
-# Import simplified utility classes
 from utils.audio_control import AudioController
 from utils.music_recognition import MusicRecognitionService
+import json
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler()
@@ -25,45 +20,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'pi-dad-secret-key'
+app.config['SECRET_KEY'] = 'airplay-secret-key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Try to load API key
-api_key = None
-api_key_paths = [
-    '.acoustid_api_key',  # Current directory
-    os.path.expanduser('~/.acoustid_api_key'),  # User's home directory
-    '/etc/acoustid_api_key'  # System-wide location
-]
-
-for path in api_key_paths:
-    try:
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                api_key = f.read().strip()
-                if api_key:
-                    logger.info(f"Loaded AcoustID API key from {path}")
-                    break
-    except Exception as e:
-        logger.error(f"Error reading API key from {path}: {e}")
-
-# Also check environment variable
-if not api_key:
-    api_key = os.environ.get('ACOUSTID_API_KEY')
-    if api_key:
-        logger.info("Using AcoustID API key from environment variable")
-
-# Initialize controllers
+# Initialize controllers and services
 audio_controller = AudioController()
-music_recognition = MusicRecognitionService(api_key=api_key)
+music_recognition = MusicRecognitionService(sample_rate=44100, chunk_size=1024, record_seconds=10)
 
-# Ensure artwork directory exists
-os.makedirs(os.path.join('static', 'artwork'), exist_ok=True)
+# Create artwork directory if it doesn't exist
+if not os.path.exists(os.path.join('static', 'artwork')):
+    os.makedirs(os.path.join('static', 'artwork'))
 
+# Thread for sending metadata updates
 def metadata_update_thread():
-    """Thread to send metadata updates to clients."""
+    """Thread to periodically send metadata updates from music recognition service"""
     logger.info("Starting metadata update thread")
     
     # Start the music recognition service
@@ -71,77 +42,62 @@ def metadata_update_thread():
     
     while True:
         try:
-            # Get metadata from music recognition first
+            # Get the current metadata from the music recognition service
             metadata = music_recognition.get_current_metadata()
             
-            # Check if AirPlay is active
-            if audio_controller.is_playing():
-                # AirPlay has priority, get its metadata
-                airplay_metadata = audio_controller.get_current_metadata()
-                
-                # Only update if AirPlay is actually playing something
-                if airplay_metadata.get('title') != "Not Playing":
-                    metadata = airplay_metadata
-                    # Add the artwork URL if not present
-                    if not metadata.get('artwork'):
-                        metadata['artwork'] = '/static/artwork/default_album.svg'
-                    # Add background color if not present
-                    if not metadata.get('background_color'):
-                        metadata['background_color'] = "#121212"
+            # Send the metadata to clients
+            socketio.emit('metadata_update', metadata)
             
-            # Add AirPlay status
+            # Add AirPlay status too
             metadata['airplay_active'] = audio_controller.is_playing()
             
-            # Send metadata to clients
-            socketio.emit('metadata_update', metadata)
+            # Log current playback state (less frequently to avoid log spam)
+            if metadata.get('title') != 'Not Playing':
+                logger.debug(f"Currently playing: {metadata.get('title')} by {metadata.get('artist')}")
             
         except Exception as e:
             logger.error(f"Error in metadata thread: {e}")
         
-        # Sleep to avoid too frequent updates
+        # Sleep for a bit to avoid too frequent updates
         time.sleep(2)
 
 # Start the metadata update thread
 metadata_thread = threading.Thread(target=metadata_update_thread)
 metadata_thread.daemon = True
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    logger.info("Health check requested")
+    return jsonify({
+        "status": "healthy", 
+        "server": "running",
+        "airplay_active": audio_controller.is_playing(),
+        "recognition_active": music_recognition.is_running
+    })
+
 @app.route('/')
 def index():
-    """Main display page."""
+    """Main display page"""
     logger.info("Display page requested")
     return render_template('display.html')
 
 @app.route('/setup')
 def setup():
-    """Setup page for AcoustID API configuration."""
+    """Setup page for AcoustID API configuration"""
     return render_template('setup.html')
 
 @app.route('/now-playing')
 def now_playing():
-    """Get current playback metadata."""
+    """Get current playback metadata"""
     try:
         # Get metadata from the music recognition service
         metadata = music_recognition.get_current_metadata()
         
         # Check if AirPlay is active
-        if audio_controller.is_playing():
-            # AirPlay has priority, get its metadata
-            airplay_metadata = audio_controller.get_current_metadata()
-            
-            # Only update if AirPlay is actually playing something
-            if airplay_metadata.get('title') != "Not Playing":
-                metadata = airplay_metadata
-                # Add the artwork URL if not present
-                if not metadata.get('artwork'):
-                    metadata['artwork'] = '/static/artwork/default_album.svg'
-                # Add background color if not present
-                if not metadata.get('background_color'):
-                    metadata['background_color'] = "#121212"
-        
-        # Add AirPlay status
         metadata['airplay_active'] = audio_controller.is_playing()
         
-        # Add debug info for troubleshooting
+        # Add debug info for Shairport-Sync
         pipe_path = '/tmp/shairport-sync-metadata'
         pipe_exists = os.path.exists(pipe_path)
         pipe_perms = 'N/A'
@@ -173,7 +129,6 @@ def now_playing():
             'artist': None,
             'album': None,
             'artwork': None,
-            'background_color': "#121212",
             '_debug': {
                 'pipe_exists': False,
                 'permissions': 'N/A',
@@ -183,15 +138,79 @@ def now_playing():
             }
         })
 
+@app.route('/debug/pipe-data')
+def debug_pipe_data():
+    """Diagnostic endpoint to check raw pipe data"""
+    try:
+        pipe_path = '/tmp/shairport-sync-metadata'
+        if not os.path.exists(pipe_path):
+            return jsonify({'error': 'Pipe not found'})
+
+        # Open pipe in non-blocking mode
+        fd = os.open(pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            with os.fdopen(fd, 'rb') as pipe:
+                ready, _, _ = select.select([pipe], [], [], 0.5)  # 500ms timeout
+                if ready:
+                    data = pipe.read(4096)
+                    if data:
+                        try:
+                            decoded = data.decode('utf-8', errors='ignore')
+                            return jsonify({
+                                'status': 'success',
+                                'raw_data_length': len(data),
+                                'decoded_data': decoded[:500],  # First 500 chars
+                                'hex_data': data.hex()[:100]  # First 50 bytes in hex
+                            })
+                        except Exception as e:
+                            return jsonify({
+                                'status': 'decode_error',
+                                'error': str(e),
+                                'raw_length': len(data),
+                                'hex_data': data.hex()[:100]
+                            })
+                    else:
+                        return jsonify({
+                            'status': 'no_data',
+                            'message': 'Pipe is empty'
+                        })
+                else:
+                    return jsonify({
+                        'status': 'timeout',
+                        'message': 'No data available within timeout period'
+                    })
+        finally:
+            # Ensure we always close the file descriptor
+            try:
+                os.close(fd)
+            except:
+                pass
+
+    except Exception as e:
+        logger.error(f"Error in debug_pipe_data: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        })
+
+@app.route('/recognition/status')
+def recognition_status():
+    """Get the status of the music recognition service"""
+    return jsonify({
+        "running": music_recognition.is_running,
+        "last_recognition_time": music_recognition.last_recognition_time,
+        "cooldown": music_recognition.recognition_cooldown
+    })
+
 @app.route('/test-recognition')
 def test_recognition():
     """
     Test route to simulate music recognition without microphone.
-    Useful for testing in environments without audio input.
+    This is useful for testing in environments where microphone access is not available.
     """
     try:
         logger.info("Simulating music recognition...")
-        music_recognition.trigger_simulation()
+        music_recognition._use_simulation_mode()
         return jsonify({
             "status": "success",
             "message": "Simulation triggered. Check the display for recognized music."
@@ -205,7 +224,7 @@ def test_recognition():
 
 @app.route('/api-key', methods=['POST'])
 def set_api_key():
-    """Set the AcoustID API key."""
+    """Set the AcoustID API key"""
     try:
         data = request.get_json()
         if not data or 'api_key' not in data:
@@ -213,18 +232,15 @@ def set_api_key():
             
         api_key = data['api_key']
         
-        # Save API key to environment variable
+        # Save the API key to environment variable
         os.environ['ACOUSTID_API_KEY'] = api_key
         
-        # Save to file for persistence
-        with open('.acoustid_api_key', 'w') as f:
-            f.write(api_key)
-        
-        # Update the music recognition service
-        music_recognition.api_key = api_key
+        # Update the API key in the music recognition service
+        # Access the global variable in the music_recognition module
+        import utils.music_recognition
+        utils.music_recognition.ACOUSTID_API_KEY = api_key
         
         return jsonify({"status": "success", "message": "API key set successfully"})
-        
     except Exception as e:
         logger.error(f"Error setting API key: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -240,7 +256,6 @@ def handle_disconnect():
 if __name__ == '__main__':
     try:
         logger.info("Starting Flask application on port 5000...")
-        
         # Start the metadata update thread
         metadata_thread.start()
         
@@ -248,7 +263,6 @@ if __name__ == '__main__':
         # Set use_reloader to False since we're in a thread
         socketio.run(app, host='0.0.0.0', port=5000, debug=True, 
                     use_reloader=False, log_output=True, allow_unsafe_werkzeug=True)
-                    
     except Exception as e:
-        logger.error(f"Failed to start Pi-DAD: {e}")
+        logger.error(f"Failed to start Flask application: {e}")
         raise

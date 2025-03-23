@@ -1,0 +1,17 @@
+[Unit]
+Description=Pi-DAD AirPlay Receiver with Music Recognition
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/Pi-DAD
+# Using a bash script wrapper that handles virtual environment activation
+ExecStart=/bin/bash /home/pi/Pi-DAD/start_music_display.sh
+Restart=always
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pi-dad
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

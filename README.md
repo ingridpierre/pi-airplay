@@ -1,139 +1,125 @@
-# Music Display with AirPlay and Recognition
+# Pi-DAD: Raspberry Pi Digital Audio Display
 
-A Raspberry Pi-powered system that bridges modern and analog music experiences, functioning as an AirPlay receiver while also using a microphone to recognize songs from any audio source.
+A Raspberry Pi-powered AirPlay receiver that transforms music streaming into an interactive, user-friendly experience. The system provides seamless audio playback through your audio hardware with a modern web interface and intuitive music recognition capabilities.
 
-## Overview
+## Features
 
-This project creates a beautiful music display system that works in two ways:
-1. As an **AirPlay Receiver** for streaming audio from your Apple devices
-2. As a **Music Recognition System** that uses a microphone to identify songs being played from analog sources (like vinyl records, cassette tapes, or radio)
+- **AirPlay Receiver**: Display metadata from AirPlay streaming sources
+- **Music Recognition**: Identify songs playing from analog sources using a microphone
+- **Clean Interface**: Minimalist display with album art and track information
+- **Easy Setup**: Simple installation process with minimal dependencies
 
-The system shows album art, track information, and artist details on a clean, minimal interface designed to look great on a dedicated display.
+## Requirements
 
-## Key Features
+- Raspberry Pi (3 or newer recommended)
+- Raspberry Pi OS (Bullseye or newer)
+- Audio output hardware (e.g., IQaudio DAC or USB audio device)
+- USB microphone for music recognition (optional)
+- AcoustID API key for music recognition (get one at [acoustid.org](https://acoustid.org/))
 
-- **Dual Input Sources**:
-  - Wireless AirPlay streaming from Apple devices
-  - Microphone-based audio recognition for analog audio sources
-- **Clean, Modern Display**:
-  - Large album art display
-  - Dynamic background colors based on album artwork
-  - Minimal text using the elegant Inter font
-- **Easy Setup**:
-  - Simple configuration process
-  - AcoustID-based music recognition with easy API key setup
-  - Optimized for Raspberry Pi with IQaudio DAC and USB microphone
+## Installation
 
-## Technology Stack
-
-- **OS**: Raspberry Pi OS
-- **Backend**: Python Flask with Flask-SocketIO
-- **Audio Processing**:
-  - Shairport-Sync for AirPlay functionality
-  - AcoustID/Chromaprint for audio fingerprinting
-  - MusicBrainz for metadata retrieval
-- **Frontend**: HTML5, CSS3, JavaScript
-- **Display**: Chromium Browser in Kiosk Mode
-- **Hardware**: 
-  - Raspberry Pi
-  - IQaudio DAC for high-quality audio output
-  - USB microphone for audio capture
-
-## Project Structure
-
-- `/app.py` - Main Flask application with both AirPlay and recognition integration
-- `/utils/` - Helper utilities
-  - `/utils/audio_control.py` - AirPlay audio control
-  - `/utils/music_recognition.py` - Microphone-based song recognition
-- `/static/` - Static assets
-  - `/static/css/main.css` - Clean, modern styling
-  - `/static/artwork/` - Album art including default placeholder
-- `/templates/` - HTML templates
-  - `/templates/display.html` - Main display interface
-  - `/templates/setup.html` - AcoustID API key configuration page
-- `/config/` - Configuration files for system services
-- `/development_log.md` - Development history and progress tracking
-
-## Development Log
-
-The `development_log.md` file in this repository tracks the history, design decisions, and progress of this project. To view the latest development status and notes, check this file.
-
-### Using the Development Log Utility
-
-This project includes utility scripts for maintaining and sharing the development log:
+### Simple Method (Recommended)
 
 ```bash
-# Add a new entry to the log
-python update_log.py entry "Description of what was implemented or changed"
+# Clone the repository
+git clone https://github.com/yourusername/pi-dad.git
+cd pi-dad
 
-# Add a new design decision
-python update_log.py decision "Description of the design decision and its rationale"
-
-# Update the future enhancements section
-python update_log.py enhancement "- Enhancement 1\n- Enhancement 2\n- Enhancement 3"
-
-# Generate a summary of recent changes (last 7 days by default)
-python sync_log.py
-
-# Generate a summary of changes for a specific number of days
-python sync_log.py 14  # Shows changes from the last 14 days
+# Run the installation script
+sudo ./install_pi_dad.sh
 ```
 
-The sync_log.py utility is particularly useful when working with multiple Replit assistant windows, as it provides a concise summary of recent changes, design decisions, and planned enhancements that can be copied and pasted to maintain context across sessions.
+During installation, you'll be prompted to enter your AcoustID API key. This is required for the music recognition feature to work properly.
 
-## Installation & Setup
+### Manual Installation
 
-Please refer to `setup_instructions.md` for detailed setup and installation instructions for Raspberry Pi deployment.
+If you prefer to install components manually:
 
-### Setting up AcoustID API Key
+1. Install required system packages:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install -y python3 python3-pip ffmpeg libasound2-dev portaudio19-dev shairport-sync
+   ```
 
-The music recognition feature requires an AcoustID API key. You can obtain one for free from [acoustid.org](https://acoustid.org/):
+2. Install Python dependencies:
+   ```bash
+   pip3 install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs
+   ```
 
-1. Create an account at [acoustid.org/login](https://acoustid.org/login)
-2. After logging in, go to [acoustid.org/applications](https://acoustid.org/applications)
-3. Register a new application (e.g., "Pi Music Display")
-4. Copy your API key
+3. Configure shairport-sync:
+   ```bash
+   sudo cp config/shairport-sync.conf /etc/shairport-sync.conf
+   ```
 
-There are three ways to set up your API key:
+4. Install systemd service:
+   ```bash
+   sudo cp config/pi-dad.service.system /etc/systemd/system/pi-dad.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable pi-dad.service
+   ```
 
-#### Method 1: Using the Setup Script (Recommended)
+5. Set up your AcoustID API key:
+   ```bash
+   echo "YOUR_API_KEY" > .acoustid_api_key
+   ```
 
-A setup script is included to easily configure your API key:
+## Usage
 
+### Starting Pi-DAD
+
+Automatically at boot (recommended):
 ```bash
-# Set up API key in the local directory
-python setup_api_key.py YOUR_API_KEY_HERE
-
-# Or set it up in your user directory (recommended)
-python setup_api_key.py --location user YOUR_API_KEY_HERE
-
-# Or set it up system-wide (requires sudo)
-sudo python setup_api_key.py --location system YOUR_API_KEY_HERE
+sudo systemctl start pi-dad
 ```
 
-#### Method 2: Using the Web Interface
-
-1. Navigate to the setup page at `http://YOUR_PI_IP:5000/setup`
-2. Enter your AcoustID API key in the form
-3. Click "Save"
-
-#### Method 3: Manual File Creation
-
-You can manually create a file containing your API key:
-
+Manually:
 ```bash
-# Option 1: In the project directory
-echo "YOUR_API_KEY_HERE" > .acoustid_api_key
-
-# Option 2: In your home directory
-echo "YOUR_API_KEY_HERE" > ~/.acoustid_api_key
-chmod 600 ~/.acoustid_api_key
-
-# Option 3: System-wide (requires sudo)
-echo "YOUR_API_KEY_HERE" | sudo tee /etc/acoustid_api_key
-sudo chmod 600 /etc/acoustid_api_key
+./start_pi_dad.sh
 ```
+
+### Accessing the Interface
+
+Once Pi-DAD is running, you can access the interface by opening a web browser and navigating to:
+
+```
+http://raspberrypi.local:5000
+```
+
+Or use the Pi's IP address:
+
+```
+http://[your-pi-ip-address]:5000
+```
+
+### Testing Music Recognition
+
+You can test the music recognition feature without playing actual music by visiting:
+
+```
+http://[your-pi-ip-address]:5000/test-recognition
+```
+
+### Setting up AcoustID API Key via Web Interface
+
+Visit the setup page to configure your AcoustID API key:
+
+```
+http://[your-pi-ip-address]:5000/setup
+```
+
+## Troubleshooting
+
+- **Metadata Pipe Issues**: If you encounter problems with AirPlay metadata, check that the metadata pipe exists with the correct permissions:
+  ```bash
+  sudo mkfifo /tmp/shairport-sync-metadata
+  sudo chmod 666 /tmp/shairport-sync-metadata
+  ```
+
+- **No Sound**: Ensure your audio device is properly configured in Raspberry Pi OS.
+
+- **Music Recognition Not Working**: Check that your microphone is properly connected and recognized by the system.
 
 ## License
 
-[License information to be determined]
+This project is licensed under the MIT License - see the LICENSE file for details.
