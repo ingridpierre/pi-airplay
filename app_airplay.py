@@ -41,7 +41,10 @@ def metadata_update_thread():
     
     while True:
         try:
-            # Default metadata when nothing is playing
+            # Get current metadata from audio controller
+            airplay_metadata = audio_controller.get_current_metadata()
+            
+            # Default metadata structure
             metadata = {
                 'title': 'Waiting for music...',
                 'artist': 'Connect via AirPlay to start streaming',
@@ -53,9 +56,6 @@ def metadata_update_thread():
             
             # Check if AirPlay is active
             if audio_controller.is_playing():
-                # AirPlay is active, get its metadata
-                airplay_metadata = audio_controller.get_current_metadata()
-                
                 # Only update if AirPlay is actually playing something
                 if airplay_metadata.get('title') != "Not Playing":
                     metadata = airplay_metadata
@@ -81,12 +81,16 @@ def metadata_update_thread():
                     pipe_owner = f"{stat.st_uid}:{stat.st_gid}"
                 except OSError as e:
                     logger.error(f"Error checking pipe permissions: {e}")
+                    
+            # Check for shairport-sync process
+            shairport_running = bool(os.popen('pgrep shairport-sync').read().strip())
             
             metadata['_debug'] = {
                 'pipe_exists': pipe_exists,
                 'permissions': pipe_perms,
                 'owner': pipe_owner,
-                'shairport_running': audio_controller.is_playing(),
+                'shairport_running': shairport_running,
+                'airplay_active': audio_controller.is_playing(),
                 'last_error': None
             }
             
@@ -97,7 +101,7 @@ def metadata_update_thread():
             logger.error(f"Error in metadata thread: {e}")
         
         # Sleep to avoid too frequent updates
-        time.sleep(5)
+        time.sleep(1)
 
 # Start the metadata update thread
 metadata_thread = threading.Thread(target=metadata_update_thread)
@@ -113,7 +117,10 @@ def index():
 def now_playing():
     """Get current playback metadata."""
     try:
-        # Default metadata
+        # Get current metadata from audio controller
+        airplay_metadata = audio_controller.get_current_metadata()
+        
+        # Default metadata structure
         metadata = {
             'title': 'Waiting for music...',
             'artist': 'Connect via AirPlay to start streaming',
@@ -125,9 +132,6 @@ def now_playing():
         
         # Check if AirPlay is active
         if audio_controller.is_playing():
-            # Get AirPlay metadata
-            airplay_metadata = audio_controller.get_current_metadata()
-            
             # Only update if AirPlay is actually playing something
             if airplay_metadata.get('title') != "Not Playing":
                 metadata = airplay_metadata
@@ -153,12 +157,16 @@ def now_playing():
                 pipe_owner = f"{stat.st_uid}:{stat.st_gid}"
             except OSError as e:
                 logger.error(f"Error checking pipe permissions: {e}")
+                
+        # Check for shairport-sync process
+        shairport_running = bool(os.popen('pgrep shairport-sync').read().strip())
         
         metadata['_debug'] = {
             'pipe_exists': pipe_exists,
             'permissions': pipe_perms,
             'owner': pipe_owner,
-            'shairport_running': audio_controller.is_playing(),
+            'shairport_running': shairport_running,
+            'airplay_active': audio_controller.is_playing(),
             'last_error': None
         }
         
