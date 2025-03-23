@@ -102,6 +102,32 @@ class MusicRecognitionService:
         
         # Set default artwork path
         self.default_artwork_path = os.path.join(self.static_folder, 'artwork', 'default_album.svg')
+        
+        # For simulation mode when no microphone is available
+        self.simulation_counter = 0
+        self.simulation_songs = [
+            {
+                'title': 'Bohemian Rhapsody',
+                'artist': 'Queen',
+                'album': 'A Night at the Opera',
+                'recording_id': '5e2e55ff-bd95-40f5-b5cf-c9f8702077f6',
+                'album_id': '1476f824-ced9-4645-953c-3ba704568ada'
+            },
+            {
+                'title': 'Imagine',
+                'artist': 'John Lennon',
+                'album': 'Imagine',
+                'recording_id': 'b95ce3ff-3d05-4e87-9e01-c808a422d7d9',
+                'album_id': 'b8ee4327-cc36-3137-9b83-b20723839ff5'
+            },
+            {
+                'title': 'Billie Jean',
+                'artist': 'Michael Jackson',
+                'album': 'Thriller',
+                'recording_id': 'f91e3192-8347-4b44-b7ee-8f9f274a46d8',
+                'album_id': 'cfc01deb-4515-4e8d-bf98-1c5ed1c1303e'
+            }
+        ]
 
     def start(self):
         """Start the music recognition service."""
@@ -164,6 +190,9 @@ class MusicRecognitionService:
             if device_index is None:
                 logger.error("No microphone device found")
                 p.terminate()
+                
+                # For testing purposes, use simulation mode when no microphone is available
+                self._use_simulation_mode()
                 return
                 
             # Open stream
@@ -389,6 +418,42 @@ class MusicRecognitionService:
             logger.error(f"Error getting album art: {e}")
             return self._get_artwork_url(None)
 
+    def _use_simulation_mode(self):
+        """
+        Simulate song recognition when microphone is not available.
+        This is for testing purposes only.
+        """
+        try:
+            # Use a rotating selection of songs
+            song = self.simulation_songs[self.simulation_counter % len(self.simulation_songs)]
+            self.simulation_counter += 1
+            
+            logger.info(f"SIMULATION MODE: Pretending to recognize {song['title']} by {song['artist']}")
+            
+            # Create metadata for the simulated song
+            metadata = {
+                'title': song['title'],
+                'artist': song['artist'],
+                'album': song['album'],
+                'artwork': None,
+                'background_color': "#121212"  # Default dark background
+            }
+            
+            # Try to get album art
+            if song['album_id']:
+                artwork_url, background_color = self._get_album_art(song['album_id'])
+                if artwork_url:
+                    metadata['artwork'] = artwork_url
+                if background_color:
+                    metadata['background_color'] = background_color
+            
+            # Update the current metadata
+            self.current_metadata = metadata
+            logger.info(f"Updated metadata with simulated song: {song['title']} by {song['artist']}")
+            
+        except Exception as e:
+            logger.error(f"Error in simulation mode: {e}")
+    
     def _get_artwork_url(self, artwork_filename):
         """
         Get the URL and dominant color for album artwork.

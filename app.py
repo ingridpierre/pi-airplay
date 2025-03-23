@@ -202,6 +202,26 @@ def recognition_status():
         "cooldown": music_recognition.recognition_cooldown
     })
 
+@app.route('/test-recognition')
+def test_recognition():
+    """
+    Test route to simulate music recognition without microphone.
+    This is useful for testing in environments where microphone access is not available.
+    """
+    try:
+        logger.info("Simulating music recognition...")
+        music_recognition._use_simulation_mode()
+        return jsonify({
+            "status": "success",
+            "message": "Simulation triggered. Check the display for recognized music."
+        })
+    except Exception as e:
+        logger.error(f"Error in simulation mode: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
 @app.route('/api-key', methods=['POST'])
 def set_api_key():
     """Set the AcoustID API key"""
