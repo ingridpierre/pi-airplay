@@ -64,7 +64,8 @@ If you prefer to install components manually:
 3. Create a virtual environment and install dependencies:
    ```bash
    sudo python3 -m venv /opt/pi-dad-venv
-   sudo /opt/pi-dad-venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+   sudo /opt/pi-dad-venv/bin/pip install --upgrade pip
+   sudo /opt/pi-dad-venv/bin/pip install flask "flask-socketio>=5.0.0" pyaudio requests pyacoustid colorthief musicbrainzngs pillow eventlet
    ```
 
 4. Configure shairport-sync:
@@ -160,6 +161,16 @@ http://[your-pi-ip-address]:5000/setup
 ## Troubleshooting
 
 - **"externally-managed-environment" Error**: If you see this error during installation, it means your Python installation is managed by the system package manager. Our installation script handles this by using virtual environments.
+
+- **"ModuleNotFoundError: No module named 'flask_socketio'"**: This means the Flask-SocketIO package is missing. Install it with:
+  ```bash
+  # If using virtual environment (recommended):
+  /opt/pi-dad-venv/bin/pip install "flask-socketio>=5.0.0" eventlet
+  
+  # Or if using system Python (not recommended):
+  pip3 install "flask-socketio>=5.0.0" eventlet
+  ```
+  The simplest solution is to run the application with `./start_pi_dad.sh` which will detect and offer to install missing dependencies.
 
 - **Metadata Pipe Issues**: If you encounter problems with AirPlay metadata, check that the metadata pipe exists with the correct permissions:
   ```bash

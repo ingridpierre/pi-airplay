@@ -79,7 +79,8 @@ if [[ "$install_type" == "1" ]]; then
     # System-wide installation (using virtual env to avoid externally-managed-environment error)
     echo "Creating system virtual environment in /opt/pi-dad-venv..."
     python3 -m venv /opt/pi-dad-venv
-    /opt/pi-dad-venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+    /opt/pi-dad-venv/bin/pip install --upgrade pip
+    /opt/pi-dad-venv/bin/pip install flask "flask-socketio>=5.0.0" pyaudio requests pyacoustid colorthief musicbrainzngs pillow eventlet
     
     # Modify the service file for the new venv location
     sed 's|/usr/bin/python3|/opt/pi-dad-venv/bin/python|g' "$SCRIPT_DIR/config/pi-dad.service.system" > /etc/systemd/system/pi-dad.service
@@ -90,7 +91,8 @@ elif [[ "$install_type" == "2" ]]; then
     python3 -m venv /opt/pi-dad/venv
     
     # Install dependencies in the virtual environment
-    /opt/pi-dad/venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+    /opt/pi-dad/venv/bin/pip install --upgrade pip
+    /opt/pi-dad/venv/bin/pip install flask "flask-socketio>=5.0.0" pyaudio requests pyacoustid colorthief musicbrainzngs pillow eventlet
     
     # Copy the venv service file and update it with correct paths
     sed 's|/opt/pi-dad/venv|/opt/pi-dad/venv|g' "$SCRIPT_DIR/config/pi-dad.service.venv" > /etc/systemd/system/pi-dad.service
