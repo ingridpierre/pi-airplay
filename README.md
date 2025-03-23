@@ -1,36 +1,56 @@
-# AirPlay Web Interface Project
+# Music Display with AirPlay and Recognition
 
-A Raspberry Pi-based AirPlay receiver with a web interface for music playback through IQaudio DAC, designed for seamless audio streaming and local control.
+A Raspberry Pi-powered system that bridges modern and analog music experiences, functioning as an AirPlay receiver while also using a microphone to recognize songs from any audio source.
 
 ## Overview
 
-This project provides a complete solution for turning a Raspberry Pi into an AirPlay receiver with an elegant web interface to control and display music playback. The system uses Shairport-Sync for AirPlay functionality and a custom Flask web interface for control and monitoring.
+This project creates a beautiful music display system that works in two ways:
+1. As an **AirPlay Receiver** for streaming audio from your Apple devices
+2. As a **Music Recognition System** that uses a microphone to identify songs being played from analog sources (like vinyl records, cassette tapes, or radio)
+
+The system shows album art, track information, and artist details on a clean, minimal interface designed to look great on a dedicated display.
 
 ## Key Features
 
-- AirPlay audio streaming reception via Shairport-Sync
-- Real-time music metadata display (artist, album, track)
-- Web-based interface for control and display
-- Optimized for IQaudio DAC hardware
-- Designed for Raspberry Pi with kiosk mode display option
+- **Dual Input Sources**:
+  - Wireless AirPlay streaming from Apple devices
+  - Microphone-based audio recognition for analog audio sources
+- **Clean, Modern Display**:
+  - Large album art display
+  - Dynamic background colors based on album artwork
+  - Minimal text using the elegant Inter font
+- **Easy Setup**:
+  - Simple configuration process
+  - AcoustID-based music recognition with easy API key setup
+  - Optimized for Raspberry Pi with IQaudio DAC and USB microphone
 
 ## Technology Stack
 
 - **OS**: Raspberry Pi OS
 - **Backend**: Python Flask with Flask-SocketIO
-- **AirPlay Receiver**: Shairport-Sync 
-- **Frontend**: HTML, CSS, JavaScript
+- **Audio Processing**:
+  - Shairport-Sync for AirPlay functionality
+  - AcoustID/Chromaprint for audio fingerprinting
+  - MusicBrainz for metadata retrieval
+- **Frontend**: HTML5, CSS3, JavaScript
 - **Display**: Chromium Browser in Kiosk Mode
-- **Audio**: IQaudio DAC hardware
+- **Hardware**: 
+  - Raspberry Pi
+  - IQaudio DAC for high-quality audio output
+  - USB microphone for audio capture
 
 ## Project Structure
 
-- `/app.py` - Main Flask application
+- `/app.py` - Main Flask application with both AirPlay and recognition integration
 - `/utils/` - Helper utilities
-  - `/utils/audio_control.py` - Audio control and metadata handling
-  - `/utils/metadata_reader.py` - Reading metadata from Shairport-Sync
-- `/static/` - Static assets (CSS, JavaScript)
+  - `/utils/audio_control.py` - AirPlay audio control
+  - `/utils/music_recognition.py` - Microphone-based song recognition
+- `/static/` - Static assets
+  - `/static/css/main.css` - Clean, modern styling
+  - `/static/artwork/` - Album art including default placeholder
 - `/templates/` - HTML templates
+  - `/templates/display.html` - Main display interface
+  - `/templates/setup.html` - AcoustID API key configuration page
 - `/config/` - Configuration files for system services
 - `/development_log.md` - Development history and progress tracking
 

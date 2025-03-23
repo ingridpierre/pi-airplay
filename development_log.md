@@ -1,16 +1,27 @@
-# AirPlay Web Interface Development Log
+# Music Display with AirPlay and Recognition: Development Log
 
 ## Project Overview
-A Raspberry Pi-based Airplay receiver with a web interface for music playback through IQaudio DAC, designed for seamless audio streaming and local control.
+A Raspberry Pi-powered system that bridges modern and analog music experiences, functioning as an AirPlay receiver while also using a microphone to recognize songs from any audio source.
 
 **Stack:**
 - Raspberry Pi OS
-- Python Flask
-- Shairport-Sync
-- Chromium Kiosk Mode
+- Python Flask with Flask-SocketIO
+- Shairport-Sync for AirPlay functionality
+- AcoustID/Chromaprint for audio fingerprinting
+- MusicBrainz for metadata retrieval
 - IQaudio DAC hardware
+- USB Microphone (Adafruit)
 
 ## Development History
+
+### [2025-03-23] Major Redesign: Adding Music Recognition
+- Pivoted from purely AirPlay metadata display to including microphone-based song recognition
+- Installed necessary audio fingerprinting and recognition libraries (acoustid, pydub, pyaudio, musicbrainzngs)
+- Created new music_recognition.py utility to identify songs from microphone input
+- Developed a simplified, modern interface with focus on large album art display and minimal text
+- Updated server to run on port 5000 for Replit compatibility
+- Created a clean SVG placeholder for unrecognized music
+- Added AcoustID API key setup page for music recognition configuration
 
 ### [2025-03-22] Initial Development Log
 - Created development log file to track project progress, design decisions and key insights
@@ -24,19 +35,33 @@ A Raspberry Pi-based Airplay receiver with a web interface for music playback th
 - Updated README with instructions for using sync_log.py utility
 
 ## Design Decisions
-- Using Flask for the web interface due to its lightweight nature, perfect for Raspberry Pi
-- Shairport-sync for AirPlay receiver functionality
-- Metadata pipe approach for getting real-time playback information
-- Web interface designed to be viewed in kiosk mode for a seamless display experience
+- Hybrid approach combining AirPlay streaming with microphone-based recognition provides flexibility for both digital and analog sources
+- Clean, minimal interface design with focus on album art creates a visually pleasing display
+- Dark theme with dynamic background color tinting based on album art enhances visual appeal
+- Using Inter font for all text elements provides a modern, clean typography
+- Microphone recognition triggered periodically rather than continuously to reduce CPU usage
+- Socket.IO for real-time updates without page refreshes
+- Separation of AirPlay control and music recognition into distinct modules for maintainability
 
 ## Key Configuration Notes
 - Shairport-sync configured to write metadata to a named pipe
 - IQaudio DAC requires specific ALSA configuration
-- Web interface runs on port 5001 to avoid conflicts
+- Web interface runs on port 5000
 - System services configured for auto-start on boot
+- AcoustID API key required for music recognition functionality
+- USB microphone needed for analog music recognition
 
 ## Future Enhancements
-- [TBD]
+- Add volume control for AirPlay and system output
+- Implement track history to show recently played songs
+- Create a mobile-friendly remote control interface
+- Add music visualization options
+- Support for Apple Music and Spotify web API integration for richer metadata
+- Improve music recognition accuracy with longer sample durations
+- Add option to save favorite/recognized tracks to a playlist
 
 ## Technical References
-- Metadata format documentation: [Shairport-sync Metadata](https://github.com/mikebrady/shairport-sync/blob/master/METADATA.md)
+- [Shairport-sync Metadata](https://github.com/mikebrady/shairport-sync/blob/master/METADATA.md)
+- [AcoustID Documentation](https://acoustid.org/webservice)
+- [MusicBrainz API Documentation](https://musicbrainz.org/doc/MusicBrainz_API)
+- [Flask-SocketIO Documentation](https://flask-socketio.readthedocs.io/)
