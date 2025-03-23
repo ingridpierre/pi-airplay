@@ -23,7 +23,7 @@ WorkingDirectory=$PWD" > $SERVICE_FILE
 # Add appropriate ExecStart line based on environment
 if [ "$USE_VENV" = true ]; then
     echo "# Using a bash script wrapper that handles virtual environment activation
-ExecStart=/bin/bash $PWD/start_music_display.sh" >> $SERVICE_FILE
+ExecStart=/bin/bash $PWD/start_pi_dad.sh" >> $SERVICE_FILE
 else
     echo "# Using system Python directly
 ExecStart=/usr/bin/python3 $PWD/app.py" >> $SERVICE_FILE

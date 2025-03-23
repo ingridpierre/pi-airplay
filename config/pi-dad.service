@@ -6,7 +6,7 @@ After=network.target
 User=pi
 WorkingDirectory=/home/pi/Pi-DAD
 # Using a bash script wrapper that handles virtual environment activation
-ExecStart=/bin/bash /home/pi/Pi-DAD/start_music_display.sh
+ExecStart=/bin/bash /home/pi/Pi-DAD/start_pi_dad.sh
 Restart=always
 StandardOutput=journal
 StandardError=journal

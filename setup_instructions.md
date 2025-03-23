@@ -88,7 +88,7 @@ pip install librosa  # This might take a while on Raspberry Pi
 pip install pyacoustid
 ```
 
-When using this option, the included `start_music_display.sh` script will handle activating the virtual environment when the service starts.
+When using this option, the included `start_pi_dad.sh` script will handle activating the virtual environment when the service starts.
 
 #### Option 2: System-wide Installation Script
 
@@ -102,10 +102,10 @@ chmod +x system_install_dependencies.sh
 ./system_install_dependencies.sh
 ```
 
-If you use this option, you should modify the `config/music-display.service` file to use system Python instead of the virtual environment by changing the `ExecStart` line to:
+If you use this option, you should modify the `config/pi-dad.service` file to use system Python instead of the virtual environment by changing the `ExecStart` line to:
 
 ```
-ExecStart=/usr/bin/python3 /home/pi/music-display/app.py
+ExecStart=/usr/bin/python3 /home/pi/Pi-DAD/app.py
 ```
 
 ### 5. Get an AcoustID API Key
@@ -114,7 +114,7 @@ The music recognition feature requires an AcoustID API key:
 
 1. Go to [acoustid.org/login](https://acoustid.org/login) and create an account
 2. After logging in, go to [acoustid.org/applications](https://acoustid.org/applications)
-3. Register a new application, providing a name (e.g., "Pi Music Display") and a version
+3. Register a new application, providing a name (e.g., "Pi-DAD") and a version
 4. Copy the API key for later use
 
 ### 6. Clone and Configure the Application
@@ -134,7 +134,7 @@ We've included a service setup script that automatically detects whether you're 
 
 ```bash
 # Make the script executable
-chmod +x start_music_display.sh system_service.sh
+chmod +x start_pi_dad.sh system_service.sh
 
 # Run the service setup script
 ./system_service.sh
