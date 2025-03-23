@@ -11,9 +11,9 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "\n${BOLD}=========================================${NC}"
-echo -e "${BOLD}   DAD Installer${NC}"
+echo -e "${BOLD}   Pi-AirPlay Installer${NC}"
 echo -e "${BOLD}=========================================${NC}\n"
-echo -e "This script will install DAD and all dependencies.\n"
+echo -e "This script will install Pi-AirPlay and all dependencies.\n"
 
 # Function to display progress
 show_progress() {
@@ -139,10 +139,10 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOL
 
-# Create systemd service for DAD web interface
-cat > /etc/systemd/system/dad.service << EOL
+# Create systemd service for Pi-AirPlay web interface
+cat > /etc/systemd/system/pi-airplay.service << EOL
 [Unit]
-Description=DAD Web Interface
+Description=Pi-AirPlay Web Interface
 After=network.target shairport-sync.service
 
 [Service]
@@ -168,9 +168,9 @@ fi
 echo -e "\n${BOLD}Step 6:${NC} Enabling services..."
 systemctl daemon-reload
 systemctl enable shairport-sync.service
-systemctl enable dad.service
+systemctl enable pi-airplay.service
 systemctl start shairport-sync.service
-systemctl start dad.service
+systemctl start pi-airplay.service
 
 if [ $? -eq 0 ]; then
   show_progress "Services enabled and started"

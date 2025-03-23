@@ -50,7 +50,7 @@ def metadata_update_thread():
                 'title': 'Waiting for music...',
                 'artist': 'Connect via AirPlay to start streaming',
                 'album': None,
-                'artwork': '/static/artwork/default_album.svg',
+                'artwork': '/static/artwork/default_album.jpg',
                 'background_color': "#121212",
                 'airplay_active': False
             }
@@ -62,7 +62,7 @@ def metadata_update_thread():
                     metadata = airplay_metadata
                     # Add the artwork URL if not present
                     if not metadata.get('artwork'):
-                        metadata['artwork'] = '/static/artwork/default_album.svg'
+                        metadata['artwork'] = '/static/artwork/default_album.jpg'
                     # Add background color if not present
                     if not metadata.get('background_color'):
                         metadata['background_color'] = "#121212"
@@ -126,7 +126,7 @@ def now_playing():
             'title': 'Waiting for music...',
             'artist': 'Connect via AirPlay to start streaming',
             'album': None,
-            'artwork': '/static/artwork/default_album.svg',
+            'artwork': '/static/artwork/default_album.jpg',
             'background_color': "#121212",
             'airplay_active': False
         }
@@ -138,7 +138,7 @@ def now_playing():
                 metadata = airplay_metadata
                 # Add the artwork URL if not present
                 if not metadata.get('artwork'):
-                    metadata['artwork'] = '/static/artwork/default_album.svg'
+                    metadata['artwork'] = '/static/artwork/default_album.jpg'
                 # Add background color if not present
                 if not metadata.get('background_color'):
                     metadata['background_color'] = "#121212"

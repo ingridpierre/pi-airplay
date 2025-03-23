@@ -97,7 +97,7 @@ http://your-raspberry-pi-ip:8000
 
 1. On your iPhone/iPad/Mac, connect to the same WiFi network
 2. Select the AirPlay icon in Control Center or Music app
-3. Choose "Pi-AirPlay" from the list of available devices
+3. Choose "DAD" from the list of available devices
 4. Start playing music
 5. View playback information on the web interface
 
@@ -201,7 +201,7 @@ Replace `/home/pi/Pi-AirPlay` with the actual path to your installation.
 ## Notes
 
 * The web interface runs on port 8000 by default (shairport-sync uses port 5000)
-* AirPlay device name is set to "Pi-AirPlay" by default
+* AirPlay device name is set to "DAD" by default
 * For improved security, consider changing the default port
 * For detailed troubleshooting, refer to [FIXES.md](FIXES.md)
 

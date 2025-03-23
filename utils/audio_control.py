@@ -69,7 +69,7 @@ class AudioController:
         }
         self.last_activity_time = 0
         self.artwork_path = Path('static/artwork/current_album.jpg')
-        self.artwork_default = '/static/artwork/default_album.svg'
+        self.artwork_default = '/static/artwork/default_album.jpg'
         
         # Debug tracking
         self.last_pipe_read_time = None

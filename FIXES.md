@@ -14,6 +14,8 @@ The following improvements have been made to address common issues:
 
 4. **Improved Process Detection**: Better distinction between shairport-sync running vs. active playback status.
 
+5. **Standardized AirPlay Device Name**: The AirPlay device name has been standardized to "DAD" across all configuration files to prevent multiple device entries appearing on your network.
+
 ## Port Conflicts
 
 ### Problem
@@ -157,3 +159,38 @@ Shairport-sync crashes or doesn't start.
    sudo apt-get update
    sudo apt-get install --reinstall shairport-sync
    ```
+
+## Multiple AirPlay Device Names
+
+### Problem
+Multiple device names appearing for the same Raspberry Pi (e.g., "Pi", "Pi-AirPlay", "DAD").
+
+### Solution
+The AirPlay device name is controlled by the `name` parameter in three configuration files:
+
+1. Check `/etc/shairport-sync.conf`:
+   ```
+   general = {
+     name = "DAD";
+     ...
+   };
+   ```
+
+2. Check `/usr/local/etc/shairport-sync.conf` (if it exists):
+   ```
+   general = {
+     name = "DAD";
+     ...
+   };
+   ```
+
+3. Check temporary configs in scripts like `run_pi_airplay.sh`:
+   ```
+   # Look for this section:
+   general = {
+     name = "DAD";
+     ...
+   };
+   ```
+
+Make sure all these files specify the same name to prevent multiple devices from appearing.
