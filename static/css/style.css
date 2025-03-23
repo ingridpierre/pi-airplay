@@ -83,6 +83,32 @@ body {
     margin-right: 0.5rem;
 }
 
+.nav-buttons {
+    margin: 1.5rem 0;
+}
+
+.nav-button {
+    display: inline-block;
+    background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+    color: white;
+    text-decoration: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 30px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.nav-button:hover {
+    background: linear-gradient(135deg, #1ed760 0%, #1DB954 100%);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.nav-button i {
+    margin-right: 0.5rem;
+}
+
 .debug-info {
     margin-top: 1rem;
     padding: 1rem;

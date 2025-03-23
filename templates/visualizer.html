@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirPlay Music Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/visualizer.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="visualizer-container">
+        <div class="player-info">
+            <div class="album-art" id="album-art">
+                <i class="fa fa-music default-album-art"></i>
+            </div>
+            <div class="track-info">
+                <h2 id="track-title">Not Playing</h2>
+                <p id="track-artist">No Artist</p>
+                <p id="track-album">No Album</p>
+            </div>
+        </div>
+        
+        <div class="visualizer-wrapper">
+            <div class="visualizer-controls">
+                <button id="start-visualizer" class="control-btn">
+                    <i class="fa fa-play"></i> Start Visualizer
+                </button>
+                <button id="stop-visualizer" class="control-btn">
+                    <i class="fa fa-stop"></i> Stop Visualizer
+                </button>
+            </div>
+            
+            <div class="visualization-area">
+                <canvas id="spectrum-canvas" width="800" height="200"></canvas>
+                <div class="volume-meter">
+                    <div id="volume-bar" class="volume-bar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="connection-info">
+            <i class="fa fa-wifi"></i>
+            <span id="connection-status">Waiting for AirPlay...</span>
+            <span id="visualizer-status">Visualizer: Idle</span>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/visualizer.js') }}"></script>
+</body>
+</html>
