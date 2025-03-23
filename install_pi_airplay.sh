@@ -11,9 +11,9 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "\n${BOLD}=========================================${NC}"
-echo -e "${BOLD}   Pi-AirPlay Installer${NC}"
+echo -e "${BOLD}   DAD Installer${NC}"
 echo -e "${BOLD}=========================================${NC}\n"
-echo -e "This script will install Pi-AirPlay and all dependencies.\n"
+echo -e "This script will install DAD and all dependencies.\n"
 
 # Function to display progress
 show_progress() {
@@ -83,7 +83,7 @@ read -p "Enter the card number for your audio device (e.g., 0, 1, 2...): " CARD_
 # Create shairport-sync configuration
 cat > /etc/shairport-sync.conf << EOL
 general = {
-  name = "Pi-AirPlay";
+  name = "DAD";
   interpolation = "basic";
   output_backend = "alsa";
   mdns_backend = "avahi";
@@ -139,10 +139,10 @@ Restart=on-failure
 WantedBy=multi-user.target
 EOL
 
-# Create systemd service for Pi-AirPlay web interface
-cat > /etc/systemd/system/pi-airplay.service << EOL
+# Create systemd service for DAD web interface
+cat > /etc/systemd/system/dad.service << EOL
 [Unit]
-Description=Pi-AirPlay Web Interface
+Description=DAD Web Interface
 After=network.target shairport-sync.service
 
 [Service]
@@ -168,9 +168,9 @@ fi
 echo -e "\n${BOLD}Step 6:${NC} Enabling services..."
 systemctl daemon-reload
 systemctl enable shairport-sync.service
-systemctl enable pi-airplay.service
+systemctl enable dad.service
 systemctl start shairport-sync.service
-systemctl start pi-airplay.service
+systemctl start dad.service
 
 if [ $? -eq 0 ]; then
   show_progress "Services enabled and started"
@@ -206,7 +206,7 @@ echo -e "${BOLD}=========================================${NC}\n"
 
 echo -e "${GREEN}Pi-AirPlay has been installed successfully!${NC}"
 echo -e "\nYou can access the web interface at: ${BOLD}http://$HOSTNAME:8080${NC}"
-echo -e "Connect to ${BOLD}Pi-AirPlay${NC} via AirPlay from your Apple device"
+echo -e "Connect to ${BOLD}DAD${NC} via AirPlay from your Apple device"
 echo -e "\nTo start in kiosk mode on your Raspberry Pi, click the desktop icon" 
 echo -e "or run: ${BOLD}chromium-browser --app=http://localhost:8080 --kiosk${NC}"
 echo -e "\nServices will automatically start on boot\n"

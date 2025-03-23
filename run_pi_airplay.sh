@@ -43,7 +43,7 @@ read -p "Enter the card number for your audio device (e.g., 0, 1, 2...): " CARD_
 mkdir -p /tmp/pi-airplay
 cat > /tmp/pi-airplay/shairport-sync.conf << EOL
 general = {
-  name = "Pi-AirPlay";
+  name = "DAD";
   interpolation = "basic";
   output_backend = "alsa";
   mdns_backend = "avahi";
@@ -106,12 +106,12 @@ show_progress "Started Pi-AirPlay web interface"
 IP_ADDRESS=$(hostname -I | awk '{print $1}')
 
 echo -e "\n${BOLD}=========================================${NC}"
-echo -e "${BOLD}   Pi-AirPlay is now running!${NC}"
+echo -e "${BOLD}   DAD is now running!${NC}"
 echo -e "${BOLD}=========================================${NC}\n"
 
 echo -e "Access the web interface at: ${BOLD}http://$IP_ADDRESS:8080${NC}"
-echo -e "Connect to ${BOLD}Pi-AirPlay${NC} via AirPlay from your Apple device\n"
-echo -e "Press ${BOLD}Ctrl+C${NC} to stop Pi-AirPlay"
+echo -e "Connect to ${BOLD}DAD${NC} via AirPlay from your Apple device\n"
+echo -e "Press ${BOLD}Ctrl+C${NC} to stop DAD"
 
 # Clean up on exit
 trap 'echo -e "\nStopping Pi-AirPlay..."; kill $SHAIRPORT_PID $WEB_PID 2>/dev/null; echo "Done."; exit 0' INT TERM

@@ -48,7 +48,7 @@ if [ ! -f "$CONF_FILE" ]; then
     mkdir -p /usr/local/etc
     cat > "$CONF_FILE" << EOF
 general = {
-  name = "Pi-AirPlay";
+  name = "DAD";
 };
 
 alsa = {
@@ -83,9 +83,9 @@ fi
 log_message "Starting web interface on port 8000..."
 python3 app_airplay.py --port 8000 --host 0.0.0.0 >> "$LOG_FILE" 2>&1 &
 
-log_message "Pi-AirPlay started! Web interface available at: http://$(hostname -I | awk '{print $1}'):8000"
+log_message "DAD started! Web interface available at: http://$(hostname -I | awk '{print $1}'):8000"
 echo "-----------------------------------------"
-echo "Pi-AirPlay is running!"
+echo "DAD AirPlay Receiver is running!"
 echo "Access the web interface at: http://$(hostname -I | awk '{print $1}'):8000"
 echo "(Important: Use HTTP, not HTTPS in your browser)"
 echo "Stream music using AirPlay from your Apple device"

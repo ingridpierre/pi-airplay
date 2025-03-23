@@ -165,7 +165,7 @@ if [ ! -f "/usr/local/etc/shairport-sync.conf" ]; then
 // Basic shairport-sync configuration
 general = 
 {
-  name = \"Pi-DAD\";
+  name = \"DAD\";
 };
 
 alsa =
@@ -206,10 +206,10 @@ if ! pgrep "shairport-sync" > /dev/null; then
     CARD_NUM=$(aplay -l | grep IQaudIO | head -n 1 | awk -F'card ' '{print $2}' | cut -d: -f1)
     if [ -n "$CARD_NUM" ]; then
         echo "Using IQaudio DAC on card $CARD_NUM for audio output"
-        sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d hw:$CARD_NUM &
+        sudo shairport-sync -a "DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d hw:$CARD_NUM &
     else
         echo "Could not find IQaudIO DAC, trying default output"
-        sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata &
+        sudo shairport-sync -a "DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata &
     fi
     
     sleep 2

@@ -53,7 +53,7 @@ sudo bash -c "cat > /usr/local/etc/shairport-sync.conf << EOL
 // Basic shairport-sync configuration
 general = 
 {
-  name = \"Pi-DAD\";
+  name = \"DAD\";
 };
 
 alsa =
@@ -96,7 +96,7 @@ if pgrep "shairport-sync" > /dev/null; then
 else
     echo "✗ Shairport-sync failed to start."
     echo "  Trying fallback method..."
-    sudo shairport-sync -a "Pi-DAD" -o alsa -- -d hw:4 &
+    sudo shairport-sync -a "DAD" -o alsa -- -d hw:4 &
     sleep 2
     if pgrep "shairport-sync" > /dev/null; then
         echo "✓ Shairport-sync started with fallback method!"
@@ -109,10 +109,10 @@ fi
 echo "✓ Using port 8080 for web interface"
 
 # Start the web interface on the alternative port
-echo "Starting Pi-DAD web interface on port 8080..."
+echo "Starting DAD web interface on port 8080..."
 echo "Access the interface at http://$(hostname -I | awk '{print $1}'):8080"
 echo ""
-echo "AirPlay device name: Pi-DAD"
+echo "AirPlay device name: DAD"
 echo ""
 
 # Run the app with the alternative port
