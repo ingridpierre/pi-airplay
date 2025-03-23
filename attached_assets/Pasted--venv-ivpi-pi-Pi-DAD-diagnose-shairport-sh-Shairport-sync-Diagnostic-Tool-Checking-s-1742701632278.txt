@@ -1,0 +1,58 @@
+(venv) ivpi@pi:~/Pi-DAD $ ./diagnose_shairport.sh
+=== Shairport-sync Diagnostic Tool ===
+
+Checking shairport-sync installation...
+shairport-sync found at: /usr/local/bin/shairport-sync
+Version information:
+4.3.7-2-ga2326f32-OpenSSL-Avahi-ALSA-metadata-sysconfdir:/usr/local/etc
+
+Checking required libraries...
+linux-vdso.so.1 (0x0000007f82506000)
+libasound.so.2 => /lib/aarch64-linux-gnu/libasound.so.2 (0x0000007f82340000)
+libavahi-common.so.3 => /lib/aarch64-linux-gnu/libavahi-common.so.3 (0x0000007f82310000)
+libavahi-client.so.3 => /lib/aarch64-linux-gnu/libavahi-client.so.3 (0x0000007f822e0000)
+libcrypto.so.3 => /lib/aarch64-linux-gnu/libcrypto.so.3 (0x0000007f81e60000)
+libconfig.so.9 => /lib/aarch64-linux-gnu/libconfig.so.9 (0x0000007f81e40000)
+libpopt.so.0 => /lib/aarch64-linux-gnu/libpopt.so.0 (0x0000007f81e10000)
+libm.so.6 => /lib/aarch64-linux-gnu/libm.so.6 (0x0000007f81d70000)
+libc.so.6 => /lib/aarch64-linux-gnu/libc.so.6 (0x0000007f81bc0000)
+/lib/ld-linux-aarch64.so.1 (0x0000007f824c9000)
+libdbus-1.so.3 => /lib/aarch64-linux-gnu/libdbus-1.so.3 (0x0000007f81b40000)
+libsystemd.so.0 => /lib/aarch64-linux-gnu/libsystemd.so.0 (0x0000007f81a50000)
+libcap.so.2 => /lib/aarch64-linux-gnu/libcap.so.2 (0x0000007f81a20000)
+libgcrypt.so.20 => /lib/aarch64-linux-gnu/libgcrypt.so.20 (0x0000007f81910000)
+liblzma.so.5 => /lib/aarch64-linux-gnu/liblzma.so.5 (0x0000007f818c0000)
+libzstd.so.1 => /lib/aarch64-linux-gnu/libzstd.so.1 (0x0000007f81800000)
+liblz4.so.1 => /lib/aarch64-linux-gnu/liblz4.so.1 (0x0000007f817b0000)
+libgpg-error.so.0 => /lib/aarch64-linux-gnu/libgpg-error.so.0 (0x0000007f81760000)
+
+Checking configuration file...
+No config file found at /etc/shairport-sync.conf
+
+Trying minimal startup (no sound output)...
+fatal error: Invalid audio backend "dummy" selected!
+FAILED: shairport-sync crashed with minimal options.
+
+Available audio output devices:
+    hardware output devices:
+      "hdmi:vc4hdmi0"
+      "hdmi:vc4hdmi1"
+      "hw:Headphones"
+      "hw:IQaudIODAC"
+      "hw:Device"
+
+Checking for IQaudio DAC hardware...
+Found IQaudio DAC hardware
+card 3: IQaudIODAC [IQaudIODAC], device 0: IQaudIO DAC HiFi pcm512x-hifi-0 [IQaudIO DAC HiFi pcm512x-hifi-0]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+IQaudio DAC is card 3
+
+Testing basic audio output to IQaudio DAC...
+SUCCESS: Basic audio test passed
+
+Checking metadata pipe...
+Metadata pipe exists
+Owner: ivpi, Permissions: prw-rw-rw-
+
+Diagnostic complete! Please provide this output for troubleshooting.

@@ -1,0 +1,129 @@
+ivpi@pi:~/Pi-DAD $ python diagnose_audio.py
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - === Audio Diagnostic Tests ===
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - Date/Time: 2025-03-22 23:41:03
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - Python version: 3.11.2 (main, Nov 30 2024, 21:22:50) [GCC 12.2.0]
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - Working directory: /home/ivpi/Pi-DAD
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - ========================================
+2025-03-22 23:41:03,918 - audio-diagnostics - INFO - Testing PyAudio import...
+2025-03-22 23:41:03,919 - audio-diagnostics - ERROR - Failed to import PyAudio: No module named 'pyaudio'
+2025-03-22 23:41:03,919 - audio-diagnostics - ERROR - Please ensure PyAudio is installed: pip install pyaudio
+2025-03-22 23:41:03,919 - audio-diagnostics - INFO - Checking ALSA configuration...
+2025-03-22 23:41:03,919 - audio-diagnostics - INFO - Found /etc/asound.conf:
+2025-03-22 23:41:03,919 - audio-diagnostics - INFO - #Use the USB audio device in card 4 as default
+pcm.!default {
+    type hw
+    card 4
+}
+
+ctl.!default {
+    type hw
+    card 4
+}
+
+2025-03-22 23:41:03,919 - audio-diagnostics - INFO - ALSA device list (aplay -L):
+null
+    Discard all samples (playback) or generate zero samples (capture)
+sysdefault
+    Default Audio Device
+lavrate
+    Rate Converter Plugin Using Libav/FFmpeg Library
+samplerate
+    Rate Converter Plugin Using Samplerate Library
+speexrate
+    Rate Converter Plugin Using Speex Resampler
+jack
+    JACK Audio Connection Kit
+oss
+    Open Sound System
+pulse
+    PulseAudio Sound Server
+speex
+    Plugin using Speex DSP (resample, agc, denoise, echo, dereverb)
+upmix
+    Plugin for channel upmix (4,6,8)
+vdownmix
+    Plugin for channel downmix (stereo) with a simple spacialization
+default
+    Playback/recording through the PulseAudio sound server
+hw:CARD=vc4hdmi0,DEV=0
+    vc4-hdmi-0, MAI PCM i2s-hifi-0
+    Direct hardware device without any conversions
+plughw:CARD=vc4hdmi0,DEV=0
+    vc4-hdmi-0, MAI PCM i2s-hifi-0
+    Hardware device with all software conversions
+sysdefault:CARD=vc4hdmi0
+    vc4-hdmi-0, MAI PCM i2s-hifi-0
+    Default Audio Device
+hdmi:CARD=vc4hdmi0,DEV=0
+    vc4-hdmi-0, MAI PCM i2s-hifi-0
+    HDMI Audio Output
+dmix:CARD=vc4hdmi0,DEV=0
+    vc4-hdmi-0, MAI PCM i2s-hifi-0
+    Direct sample mixing device
+usbstream:CARD=vc4hdmi0
+    vc4-hdmi-0
+    USB Stream Output
+hw:CARD=vc4hdmi1,DEV=0
+    vc4-hdmi-1, MAI PCM i2s-hifi-0
+    Direct hardware device without any conversions
+plughw:CARD=vc4hdmi1,DEV=0
+    vc4-hdmi-1, MAI PCM i2s-hifi-0
+    Hardware device with all software conversions
+sysdefault:CARD=vc4hdmi1
+    vc4-hdmi-1, MAI PCM i2s-hifi-0
+    Default Audio Device
+hdmi:CARD=vc4hdmi1,DEV=0
+    vc4-hdmi-1, MAI PCM i2s-hifi-0
+    HDMI Audio Output
+dmix:CARD=vc4hdmi1,DEV=0
+    vc4-hdmi-1, MAI PCM i2s-hifi-0
+    Direct sample mixing device
+usbstream:CARD=vc4hdmi1
+    vc4-hdmi-1
+    USB Stream Output
+hw:CARD=Headphones,DEV=0
+    bcm2835 Headphones, bcm2835 Headphones
+    Direct hardware device without any conversions
+plughw:CARD=Headphones,DEV=0
+    bcm2835 Headphones, bcm2835 Headphones
+    Hardware device with all software conversions
+sysdefault:CARD=Headphones
+    bcm2835 Headphones, bcm2835 Headphones
+    Default Audio Device
+dmix:CARD=Headphones,DEV=0
+    bcm2835 Headphones, bcm2835 Headphones
+    Direct sample mixing device
+usbstream:CARD=Headphones
+    bcm2835 Headphones
+    USB Stream Output
+hw:CARD=IQaudIODAC,DEV=0
+    IQaudIODAC, IQaudIO DAC HiFi pcm512x-hifi-0
+    Direct hardware device without any conversions
+plughw:CARD=IQaudIODAC,DEV=0
+    IQaudIODAC, IQaudIO DAC HiFi pcm512x-hifi-0
+    Hardware device with all software conversions
+sysdefault:CARD=IQaudIODAC
+    IQaudIODAC, IQaudIO DAC HiFi pcm512x-hifi-0
+    Default Audio Device
+dmix:CARD=IQaudIODAC,DEV=0
+    IQaudIODAC, IQaudIO DAC HiFi pcm512x-hifi-0
+    Direct sample mixing device
+usbstream:CARD=IQaudIODAC
+    IQaudIODAC
+    USB Stream Output
+usbstream:CARD=Device
+    USB PnP Sound Device
+    USB Stream Output
+2025-03-22 23:41:03,969 - audio-diagnostics - INFO - Testing recording with arecord...
+2025-03-22 23:41:03,969 - audio-diagnostics - INFO - Available recording devices:
+**** List of CAPTURE Hardware Devices ****
+card 4: Device [USB PnP Sound Device], device 0: USB Audio [USB Audio]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+2025-03-22 23:41:03,986 - audio-diagnostics - INFO - Recording 3 seconds to /tmp/tmprct6fw92.wav...
+Recording WAVE '/tmp/tmprct6fw92.wav' : Signed 16 bit Little Endian, Rate 44100 Hz, Stereo
+2025-03-22 23:41:07,236 - audio-diagnostics - INFO - Successfully recorded with arecord to /tmp/tmprct6fw92.wav (529244 bytes)
+2025-03-22 23:41:07,236 - audio-diagnostics - INFO - ========================================
+2025-03-22 23:41:07,237 - audio-diagnostics - INFO - Diagnostic Summary:
+2025-03-22 23:41:07,237 - audio-diagnostics - INFO - PyAudio import: FAILED
+2025-03-22 23:41:07,237 - audio-diagnostics - INFO - arecord recording: OK
