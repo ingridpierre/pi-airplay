@@ -65,6 +65,8 @@ Open a browser on any device connected to the same network and navigate to:
 http://your-raspberry-pi-ip:8080
 ```
 
+**Important:** Use HTTP, not HTTPS. Make sure to type `http://` at the beginning of the URL.
+
 ### AirPlay Streaming
 
 1. On your iPhone/iPad/Mac, connect to the same WiFi network

@@ -94,6 +94,12 @@ Can't access the web interface.
    python3 app_airplay.py --port 8080
    ```
 
+4. Important: Use HTTP, not HTTPS to access the web interface:
+   ```
+   http://your-pi-ip:8080
+   ```
+   (Not https://your-pi-ip:8080)
+
 ## Shairport-sync Issues
 
 ### Problem

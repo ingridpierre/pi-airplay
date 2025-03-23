@@ -87,5 +87,6 @@ log_message "Pi-AirPlay started! Web interface available at: http://$(hostname -
 echo "-----------------------------------------"
 echo "Pi-AirPlay is running!"
 echo "Access the web interface at: http://$(hostname -I | awk '{print $1}'):8080"
+echo "(Important: Use HTTP, not HTTPS in your browser)"
 echo "Stream music using AirPlay from your Apple device"
 echo "-----------------------------------------"
