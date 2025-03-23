@@ -98,7 +98,7 @@ show_progress "Started shairport-sync"
 
 # Start Pi-AirPlay web interface
 echo -e "\n${YELLOW}→${NC} Starting Pi-AirPlay web interface..."
-python app_airplay.py --port 5000 &
+python app_airplay.py --port 8080 &
 WEB_PID=$!
 show_progress "Started Pi-AirPlay web interface"
 
@@ -109,7 +109,7 @@ echo -e "\n${BOLD}=========================================${NC}"
 echo -e "${BOLD}   Pi-AirPlay is now running!${NC}"
 echo -e "${BOLD}=========================================${NC}\n"
 
-echo -e "Access the web interface at: ${BOLD}http://$IP_ADDRESS:5000${NC}"
+echo -e "Access the web interface at: ${BOLD}http://$IP_ADDRESS:8080${NC}"
 echo -e "Connect to ${BOLD}Pi-AirPlay${NC} via AirPlay from your Apple device\n"
 echo -e "Press ${BOLD}Ctrl+C${NC} to stop Pi-AirPlay"
 

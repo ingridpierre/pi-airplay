@@ -148,7 +148,7 @@ After=network.target shairport-sync.service
 [Service]
 WorkingDirectory=/opt/pi-airplay
 Environment=PATH=/opt/pi-airplay/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/pi-airplay/venv/bin/python /opt/pi-airplay/app_airplay.py --port 5000
+ExecStart=/opt/pi-airplay/venv/bin/python /opt/pi-airplay/app_airplay.py --port 8080
 Restart=on-failure
 User=pi
 Group=pi
@@ -188,7 +188,7 @@ cat > /home/pi/Desktop/Pi-AirPlay.desktop << EOL
 [Desktop Entry]
 Name=Pi-AirPlay
 Comment=Open Pi-AirPlay Web Interface
-Exec=chromium-browser --app=http://localhost:5000 --kiosk
+Exec=chromium-browser --app=http://localhost:8080 --kiosk
 Type=Application
 Icon=/opt/pi-airplay/static/artwork/default_album.svg
 Categories=AudioVideo;
@@ -205,10 +205,10 @@ echo -e "${BOLD}   Installation Complete!${NC}"
 echo -e "${BOLD}=========================================${NC}\n"
 
 echo -e "${GREEN}Pi-AirPlay has been installed successfully!${NC}"
-echo -e "\nYou can access the web interface at: ${BOLD}http://$HOSTNAME:5000${NC}"
+echo -e "\nYou can access the web interface at: ${BOLD}http://$HOSTNAME:8080${NC}"
 echo -e "Connect to ${BOLD}Pi-AirPlay${NC} via AirPlay from your Apple device"
 echo -e "\nTo start in kiosk mode on your Raspberry Pi, click the desktop icon" 
-echo -e "or run: ${BOLD}chromium-browser --app=http://localhost:5000 --kiosk${NC}"
+echo -e "or run: ${BOLD}chromium-browser --app=http://localhost:8080 --kiosk${NC}"
 echo -e "\nServices will automatically start on boot\n"
 
 exit 0

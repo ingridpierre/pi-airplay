@@ -32,8 +32,8 @@ If you prefer to install components manually:
 
 1. Clone this repository to your Raspberry Pi:
    ```bash
-   git clone https://github.com/yourusername/Pi-AirPlay.git
-   cd Pi-AirPlay
+   git clone https://github.com/yourusername/pi-airplay.git
+   cd pi-airPlay
    ```
 
 2. Install required packages:
@@ -62,7 +62,7 @@ This will start both shairport-sync and the web interface temporarily.
 
 Open a browser on any device connected to the same network and navigate to:
 ```
-http://your-raspberry-pi-ip:5000
+http://your-raspberry-pi-ip:8080
 ```
 
 ### AirPlay Streaming
@@ -77,7 +77,7 @@ http://your-raspberry-pi-ip:5000
 
 For a dedicated display (like a small touchscreen on your Pi):
 ```bash
-chromium-browser --kiosk --app=http://localhost:5000
+chromium-browser --kiosk --app=http://localhost:8080
 ```
 
 ## Troubleshooting
@@ -91,7 +91,7 @@ Common issues:
 
 ## Notes
 
-* The web interface runs on port 5000 by default
+* The web interface runs on port 8080 by default (shairport-sync uses port 5000)
 * AirPlay device name is set to "Pi-AirPlay" by default
 * For improved security, consider changing the default port
 
