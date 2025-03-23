@@ -1,14 +1,13 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 import logging
 import os
 import select
-from os import O_RDONLY, O_NONBLOCK  # Add O_NONBLOCK import
+from os import O_RDONLY, O_NONBLOCK
 from flask_socketio import SocketIO
 import threading
 import time
 from utils.audio_control import AudioController
-from utils.audio_visualizer import AudioVisualizer
-from utils.artwork_handler import ArtworkHandler
+from utils.music_recognition import MusicRecognitionService
 import json
 
 # Configure logging
@@ -25,110 +24,92 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'airplay-secret-key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Initialize controllers and helpers
+# Initialize controllers and services
 audio_controller = AudioController()
-audio_visualizer = AudioVisualizer(buffer_size=3, sample_rate=44100, block_size=2048, channels=1)
-artwork_handler = ArtworkHandler(os.path.abspath('static'))
+music_recognition = MusicRecognitionService(sample_rate=44100, chunk_size=1024, record_seconds=10)
 
 # Create artwork directory if it doesn't exist
 if not os.path.exists(os.path.join('static', 'artwork')):
     os.makedirs(os.path.join('static', 'artwork'))
 
-# Thread for sending real-time audio visualization data
-def send_visualization_thread():
-    logger.info("Starting visualization data thread")
-    last_is_playing = False
+# Thread for sending metadata updates
+def metadata_update_thread():
+    """Thread to periodically send metadata updates from music recognition service"""
+    logger.info("Starting metadata update thread")
+    
+    # Start the music recognition service
+    music_recognition.start()
     
     while True:
-        if audio_visualizer.is_running:
-            try:
-                # Check if music is playing via AirPlay
-                is_playing = audio_controller.is_playing()
-                
-                # If playing status changed, update the visualizer
-                if is_playing != last_is_playing:
-                    audio_visualizer._is_playing = is_playing
-                    last_is_playing = is_playing
-                
-                # Get and send visualization data
-                vis_data = audio_visualizer.get_visualization_data()
-                
-                # Add playing status to visualization data
-                vis_data['is_playing'] = is_playing
-                
-                # Send the data via Socket.IO
-                socketio.emit('visualization_data', vis_data)
-            except Exception as e:
-                logger.error(f"Error sending visualization data: {e}")
-        time.sleep(0.1)  # Send every 100ms
+        try:
+            # Get the current metadata from the music recognition service
+            metadata = music_recognition.get_current_metadata()
+            
+            # Send the metadata to clients
+            socketio.emit('metadata_update', metadata)
+            
+            # Add AirPlay status too
+            metadata['airplay_active'] = audio_controller.is_playing()
+            
+            # Log current playback state (less frequently to avoid log spam)
+            if metadata.get('title') != 'Not Playing':
+                logger.debug(f"Currently playing: {metadata.get('title')} by {metadata.get('artist')}")
+            
+        except Exception as e:
+            logger.error(f"Error in metadata thread: {e}")
+        
+        # Sleep for a bit to avoid too frequent updates
+        time.sleep(2)
 
-# Start the visualization thread
-visualization_thread = threading.Thread(target=send_visualization_thread)
-visualization_thread.daemon = True
+# Start the metadata update thread
+metadata_thread = threading.Thread(target=metadata_update_thread)
+metadata_thread.daemon = True
 
 @app.route('/health')
 def health_check():
+    """Health check endpoint"""
     logger.info("Health check requested")
-    return jsonify({"status": "healthy", "server": "running"})
+    return jsonify({
+        "status": "healthy", 
+        "server": "running",
+        "airplay_active": audio_controller.is_playing(),
+        "recognition_active": music_recognition.is_running
+    })
 
 @app.route('/')
 def index():
-    logger.info("Index page requested")
-    return render_template('index.html')
+    """Main display page"""
+    logger.info("Display page requested")
+    return render_template('display.html')
+
+@app.route('/setup')
+def setup():
+    """Setup page for AcoustID API configuration"""
+    return render_template('setup.html')
 
 @app.route('/now-playing')
 def now_playing():
+    """Get current playback metadata"""
     try:
-        # Check metadata pipe existence and permissions
+        # Get metadata from the music recognition service
+        metadata = music_recognition.get_current_metadata()
+        
+        # Check if AirPlay is active
+        metadata['airplay_active'] = audio_controller.is_playing()
+        
+        # Add debug info for Shairport-Sync
         pipe_path = '/tmp/shairport-sync-metadata'
         pipe_exists = os.path.exists(pipe_path)
         pipe_perms = 'N/A'
         pipe_owner = 'N/A'
-
+        
         if pipe_exists:
             try:
                 stat = os.stat(pipe_path)
                 pipe_perms = oct(stat.st_mode)[-3:]
                 pipe_owner = f"{stat.st_uid}:{stat.st_gid}"
-                logger.info(f"Metadata pipe exists with permissions: {pipe_perms}, owner: {pipe_owner}")
             except OSError as e:
                 logger.error(f"Error checking pipe permissions: {e}")
-
-        # Get metadata from controller
-        metadata = audio_controller.get_current_metadata()
-        logger.debug(f"Retrieved metadata: {metadata}")
-        
-        # Process artwork if it exists in the metadata
-        if 'artwork' in metadata and metadata['artwork']:
-            # Save the artwork and get the URL
-            artwork_url = artwork_handler.save_artwork_from_metadata(metadata)
-            if artwork_url:
-                metadata['artwork_url'] = artwork_url
-                logger.info(f"Saved artwork at {artwork_url}")
-            else:
-                logger.warning("Failed to save artwork")
-        # Check for existing artwork
-        else:
-            artwork_url = artwork_handler.get_current_artwork_url()
-            if artwork_url:
-                metadata['artwork_url'] = artwork_url
-        
-        # Add debug information with proper initialization
-        pipe_exists = False
-        pipe_perms = "N/A"
-        pipe_owner = "N/A"
-        
-        # Get pipe information if it exists
-        try:
-            pipe_path = '/tmp/shairport-sync-metadata'
-            if os.path.exists(pipe_path):
-                pipe_exists = True
-                pipe_stats = os.stat(pipe_path)
-                pipe_perms = oct(pipe_stats.st_mode)[-3:]  # Get last 3 digits (file permissions)
-                pipe_owner = f"{pipe_stats.st_uid}:{pipe_stats.st_gid}"
-                logger.info(f"Metadata pipe exists with permissions: {pipe_perms}, owner: {pipe_owner}")
-        except OSError as e:
-            logger.error(f"Error checking pipe permissions: {e}")
         
         metadata['_debug'] = {
             'pipe_exists': pipe_exists,
@@ -137,15 +118,17 @@ def now_playing():
             'shairport_running': audio_controller.is_playing(),
             'last_error': None
         }
-
+        
         return jsonify(metadata)
+        
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Error in now-playing endpoint: {error_msg}")
         return jsonify({
             'title': 'Cannot get metadata',
-            'artist': 'Error',
-            'album': str(error_msg),
+            'artist': None,
+            'album': None,
+            'artwork': None,
             '_debug': {
                 'pipe_exists': False,
                 'permissions': 'N/A',
@@ -210,35 +193,36 @@ def debug_pipe_data():
             'error': str(e)
         })
 
-@app.route('/visualizer')
-def visualizer():
-    """Route for the audio visualizer page"""
-    logger.info("Visualizer page requested")
-    return render_template('visualizer.html')
+@app.route('/recognition/status')
+def recognition_status():
+    """Get the status of the music recognition service"""
+    return jsonify({
+        "running": music_recognition.is_running,
+        "last_recognition_time": music_recognition.last_recognition_time,
+        "cooldown": music_recognition.recognition_cooldown
+    })
 
-@app.route('/visualizer/start')
-def start_visualizer():
-    """Start the audio visualizer"""
+@app.route('/api-key', methods=['POST'])
+def set_api_key():
+    """Set the AcoustID API key"""
     try:
-        if not audio_visualizer.is_running:
-            audio_visualizer.start()
-            logger.info("Audio visualizer started")
-        return jsonify({"status": "success", "message": "Visualizer started"})
+        data = request.get_json()
+        if not data or 'api_key' not in data:
+            return jsonify({"status": "error", "message": "No API key provided"}), 400
+            
+        api_key = data['api_key']
+        
+        # Save the API key to environment variable
+        os.environ['ACOUSTID_API_KEY'] = api_key
+        
+        # Update the API key in the music recognition service
+        global ACOUSTID_API_KEY
+        ACOUSTID_API_KEY = api_key
+        
+        return jsonify({"status": "success", "message": "API key set successfully"})
     except Exception as e:
-        logger.error(f"Error starting visualizer: {e}")
-        return jsonify({"status": "error", "message": str(e)})
-
-@app.route('/visualizer/stop')
-def stop_visualizer():
-    """Stop the audio visualizer"""
-    try:
-        if audio_visualizer.is_running:
-            audio_visualizer.stop()
-            logger.info("Audio visualizer stopped")
-        return jsonify({"status": "success", "message": "Visualizer stopped"})
-    except Exception as e:
-        logger.error(f"Error stopping visualizer: {e}")
-        return jsonify({"status": "error", "message": str(e)})
+        logger.error(f"Error setting API key: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @socketio.on('connect')
 def handle_connect():
@@ -251,8 +235,8 @@ def handle_disconnect():
 if __name__ == '__main__':
     try:
         logger.info("Starting Flask application on port 5000...")
-        # Start the visualization thread
-        visualization_thread.start()
+        # Start the metadata update thread
+        metadata_thread.start()
         
         # Use 0.0.0.0 to ensure the server is accessible externally
         # Set use_reloader to False since we're in a thread

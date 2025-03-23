@@ -1,205 +1,165 @@
 /* 
- * Main CSS for the Pi Audio Display
- * Focused on a clean, modern interface with dark background
- */
+  Music Display - Main Stylesheet
+  Modern, clean design with focus on album art
+*/
 
+/* Import Inter font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-:root {
-  --primary-text: #ffffff;
-  --secondary-text: rgba(255, 255, 255, 0.7);
-  --background: #121212;
-  --container-bg: rgba(255, 255, 255, 0.05);
-  --highlight: #5D87FF;
-}
-
+/* Reset and base styles */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--background);
-  color: var(--primary-text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 1s ease;
-  overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #121212;
+    color: white;
+    transition: background-color 1s ease;
+    height: 100vh;
+    overflow: hidden;
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 600px;
-  padding: 20px;
+/* App container */
+#app {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 20px;
 }
 
-.album-art-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
+/* Main music info container */
+#music-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;  /* Adjust based on screen size */
 }
 
-.album-art {
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  aspect-ratio: 1/1;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: var(--container-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Album art */
+#album-art-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 30px;
 }
 
-.album-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: opacity 0.5s ease;
+#album-art {
+    width: 85%;
+    max-width: 500px;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: all 0.5s ease;
 }
 
-.default-album-art {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  opacity: 0.5;
+/* Track information */
+#track-info {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.track-info {
-  width: 100%;
-  text-align: center;
-  margin-top: 20px;
+#track-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-.track-title {
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#track-artist {
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.8);
 }
 
-.track-artist {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--secondary-text);
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+#track-album {
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
 }
 
-.track-album {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--secondary-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Playback indicators */
+#playback-info {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
 }
 
-.status-indicator {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: #4CAF50;
+.indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin: 0 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
 }
 
-.status-indicator.inactive {
-  background-color: #F44336;
+.indicator.active {
+    background-color: #1DB954;  /* Spotify green */
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
 }
 
-.status-indicator.listening {
-  background-color: #2196F3;
-  animation: pulse 2s infinite;
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.7);
-  }
-  
-  70% {
-    transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
-  }
-  
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0);
-  }
+#track-title, #track-artist, #track-album {
+    animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* Scrolling text for long titles/names */
-@keyframes scroll-text {
-  0% { transform: translateX(0); }
-  40% { transform: translateX(0); }
-  80% { transform: translateX(calc(-100% + 400px)); }
-  100% { transform: translateX(0); }
+#track-artist {
+    animation-delay: 0.1s;
 }
 
-.track-info:hover .track-title,
-.track-info:hover .track-artist,
-.track-info:hover .track-album {
-  white-space: nowrap;
-  overflow: visible;
-  animation: scroll-text 8s linear infinite;
+#track-album {
+    animation-delay: 0.2s;
 }
 
 /* Responsive adjustments */
-@media (max-width: 700px) {
-  .container {
-    padding: 15px;
-  }
-
-  .album-art {
-    max-width: 300px;
-  }
-
-  .track-title {
-    font-size: 24px;
-  }
-
-  .track-artist {
-    font-size: 18px;
-  }
-
-  .track-album {
-    font-size: 14px;
-  }
+@media (max-width: 768px) {
+    #album-art {
+        width: 75%;
+    }
+    
+    #track-title {
+        font-size: 1.8rem;
+    }
+    
+    #track-artist {
+        font-size: 1.4rem;
+    }
+    
+    #track-album {
+        font-size: 1rem;
+    }
 }
 
-@media (max-width: 400px) {
-  .album-art {
-    max-width: 250px;
-  }
+@media (max-width: 480px) {
+    #album-art {
+        width: 85%;
+    }
+    
+    #track-title {
+        font-size: 1.5rem;
+    }
+    
+    #track-artist {
+        font-size: 1.2rem;
+    }
+    
+    #track-album {
+        font-size: 0.9rem;
+    }
+}
 
-  .track-title {
-    font-size: 20px;
-  }
-
-  .track-artist {
-    font-size: 16px;
-  }
-
-  .track-album {
-    font-size: 12px;
-  }
+/* Default album art placeholder styles */
+img[src="/static/artwork/default_album.svg"] {
+    opacity: 0.7;
 }

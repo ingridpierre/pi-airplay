@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pi Audio Display</title>
+    <title>Music Display</title>
     <link rel="stylesheet" href="/static/css/main.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 </head>
-<body id="main-background">
-    <div class="status-indicator" id="status-indicator"></div>
-    
-    <div class="container">
-        <div class="album-art-container">
-            <div class="album-art">
-                <img src="/static/artwork/default_album.svg" alt="Album Artwork" id="album-art">
+<body>
+    <div id="app">
+        <div id="music-info" class="centered">
+            <div id="album-art-container">
+                <img id="album-art" src="/static/artwork/default_album.svg" alt="Album Art">
             </div>
-        </div>
-        
-        <div class="track-info">
-            <div class="track-title" id="track-title">Not Playing</div>
-            <div class="track-artist" id="track-artist">Waiting for music</div>
-            <div class="track-album" id="track-album"></div>
+            <div id="track-info">
+                <h1 id="track-title">Not Playing</h1>
+                <h2 id="track-artist"></h2>
+                <h3 id="track-album"></h3>
+            </div>
+            <div id="playback-info">
+                <div id="airplay-indicator" class="indicator"></div>
+                <div id="recognition-indicator" class="indicator"></div>
+            </div>
         </div>
     </div>
 
@@ -33,83 +34,73 @@
         const trackTitle = document.getElementById('track-title');
         const trackArtist = document.getElementById('track-artist');
         const trackAlbum = document.getElementById('track-album');
-        const background = document.getElementById('main-background');
-        const statusIndicator = document.getElementById('status-indicator');
+        const airplayIndicator = document.getElementById('airplay-indicator');
+        const recognitionIndicator = document.getElementById('recognition-indicator');
         
-        // Default background color
-        let currentBackgroundColor = "#121212";
-        
-        // Update status indicator
-        function updateStatus(status) {
-            statusIndicator.className = 'status-indicator';
+        // Update the display with metadata
+        function updateDisplay(metadata) {
+            // Update track info
+            trackTitle.textContent = metadata.title || 'Not Playing';
+            trackArtist.textContent = metadata.artist || '';
+            trackAlbum.textContent = metadata.album || '';
             
-            if (status === 'active') {
-                statusIndicator.classList.add('active');
-            } else if (status === 'inactive') {
-                statusIndicator.classList.add('inactive');
-            } else if (status === 'listening') {
-                statusIndicator.classList.add('listening');
-            }
-        }
-        
-        // Handle metadata updates from the server
-        socket.on('metadata_update', function(data) {
-            console.log("New metadata received:", data);
-            
-            // Update track information
-            trackTitle.textContent = data.title || 'Unknown Title';
-            trackArtist.textContent = data.artist || 'Unknown Artist';
-            trackAlbum.textContent = data.album || '';
-            
-            // Update album artwork
-            if (data.artwork) {
-                albumArt.src = data.artwork;
-                albumArt.classList.remove('default-album-art');
-                updateStatus('active');
+            // Update album art
+            if (metadata.artwork) {
+                albumArt.src = metadata.artwork;
             } else {
                 albumArt.src = '/static/artwork/default_album.svg';
-                albumArt.classList.add('default-album-art');
-                
-                if (data.title === 'Not Playing') {
-                    updateStatus('inactive');
-                } else {
-                    updateStatus('listening');
-                }
             }
             
-            // Update background color with transition
-            if (data.background_color && data.background_color !== currentBackgroundColor) {
-                currentBackgroundColor = data.background_color;
-                background.style.backgroundColor = currentBackgroundColor;
+            // Update background color
+            if (metadata.background_color) {
+                document.body.style.backgroundColor = metadata.background_color;
+            } else {
+                document.body.style.backgroundColor = '#121212';
             }
-        });
-        
-        // Request initial metadata on page load
-        function updateMetadata() {
-            fetch('/now-playing')
-                .then(response => response.json())
-                .then(data => {
-                    socket.emit('metadata_update', data);
-                })
-                .catch(error => {
-                    console.error('Error fetching metadata:', error);
-                    updateStatus('inactive');
-                });
+            
+            // Update indicators
+            if (metadata.airplay_active) {
+                airplayIndicator.classList.add('active');
+                airplayIndicator.setAttribute('title', 'AirPlay Active');
+            } else {
+                airplayIndicator.classList.remove('active');
+                airplayIndicator.setAttribute('title', 'AirPlay Inactive');
+            }
         }
         
-        // Initial update and periodic refresh
-        updateMetadata();
-        setInterval(updateMetadata, 5000);
-        
-        // Handle connection events
+        // Socket.IO event handlers
         socket.on('connect', function() {
             console.log('Connected to server');
+            recognitionIndicator.classList.add('active');
+            recognitionIndicator.setAttribute('title', 'Recognition Active');
         });
         
         socket.on('disconnect', function() {
             console.log('Disconnected from server');
-            updateStatus('inactive');
+            recognitionIndicator.classList.remove('active');
+            recognitionIndicator.setAttribute('title', 'Recognition Inactive');
         });
+        
+        socket.on('metadata_update', function(metadata) {
+            console.log('Received metadata update:', metadata);
+            updateDisplay(metadata);
+        });
+        
+        // Initial metadata request
+        fetch('/now-playing')
+            .then(response => response.json())
+            .then(metadata => {
+                console.log('Initial metadata:', metadata);
+                updateDisplay(metadata);
+            })
+            .catch(error => {
+                console.error('Error fetching metadata:', error);
+            });
+            
+        // Auto-refresh page every hour to prevent any memory leaks
+        setTimeout(() => {
+            window.location.reload();
+        }, 60 * 60 * 1000);
     </script>
 </body>
 </html>
