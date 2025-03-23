@@ -2,6 +2,20 @@
 
 This document contains common issues and their solutions for the Pi-AirPlay system.
 
+## Latest Fixes (March 23, 2025)
+
+The following important fixes have been implemented today:
+
+1. **Port Conflict Resolution**: Fixed conflicts between the old Pi-DAD app (running on port 5000) and the new Pi-AirPlay app (running on port 8000) to ensure both AirPlay streaming and web interface work correctly.
+
+2. **Missing Package Fix**: Added the missing `colorthief` Python package which was causing the web interface to fail with "ModuleNotFoundError: No module named 'colorthief'".
+
+3. **Consolidated Startup Scripts**: Updated `pi_airplay.sh` and `install_pi_airplay.sh` to include all necessary fixes in a streamlined manner. No longer need multiple fix scripts.
+
+4. **Improved Metadata Pipe Handling**: Added better error handling for the metadata pipe creation, with proper permissions (666) and cleanup.
+
+5. **Pre-Runtime Dependency Check**: Added automatic Python package checking before startup to detect missing dependencies like `colorthief`.
+
 ## Recent Improvements
 
 The following improvements have been made to address common issues:
@@ -24,14 +38,21 @@ The following improvements have been made to address common issues:
 The default configuration uses port 5000 for both shairport-sync and the Flask web server, causing conflicts.
 
 ### Solution
-Run the `alt_port_fix.sh` script which:
-1. Configures shairport-sync to use port 5000 (AirPlay default)
-2. Configures the web interface to use port 8000
-3. Correctly sets permissions for the metadata pipe
+The updated scripts now automatically:
+1. Configure shairport-sync to use port 5000 (AirPlay default)
+2. Configure the web interface to use port 8000
+3. Correctly set permissions for the metadata pipe
 
+To manually fix port conflicts, run:
 ```bash
-./alt_port_fix.sh
+./pi_airplay.sh
 ```
+
+The script will:
+- Check for and kill any processes using ports 5000 and 8000
+- Recreate the metadata pipe with correct permissions
+- Start shairport-sync on port 5000
+- Start the web interface on port 8000
 
 ## Audio Output Issues
 
@@ -47,7 +68,7 @@ The IQaudio DAC needs to be properly configured:
    aplay -l
    cat /proc/asound/cards
    ```
-3. Update the `output_device` in `/usr/local/etc/shairport-sync.conf` to match your DAC card number:
+3. Update the `output_device` in the config file to match your DAC card number:
    ```
    alsa = {
      output_device = "hw:X";  # Replace X with your card number (e.g., hw:4)
@@ -77,6 +98,25 @@ The updated code now includes improved error handling for metadata pipe access:
 - Automatic handling for different platforms (with/without fcntl)
 - Improved pipe creation and permission management
 - Proper cleanup when pipe access fails
+
+## Missing Python Dependencies
+
+### Problem
+Web interface fails to start due to missing Python packages.
+
+### Solution
+The updated script now checks for dependencies at startup. To manually install packages:
+
+```bash
+pip3 install flask flask-socketio eventlet pillow colorthief requests numpy
+```
+
+Or you can use the new dependency checker in the startup script:
+```bash
+./pi_airplay.sh
+```
+
+If packages are missing, the script will offer to install them for you.
 
 ## Startup Issues
 
@@ -168,31 +208,4 @@ Shairport-sync crashes or doesn't start.
 Multiple device names appearing for the same Raspberry Pi (e.g., "Pi", "Pi-AirPlay", "DAD").
 
 ### Solution
-The AirPlay device name is controlled by the `name` parameter in three configuration files:
-
-1. Check `/etc/shairport-sync.conf`:
-   ```
-   general = {
-     name = "DAD";
-     ...
-   };
-   ```
-
-2. Check `/usr/local/etc/shairport-sync.conf` (if it exists):
-   ```
-   general = {
-     name = "DAD";
-     ...
-   };
-   ```
-
-3. Check temporary configs in scripts like `run_pi_airplay.sh`:
-   ```
-   # Look for this section:
-   general = {
-     name = "DAD";
-     ...
-   };
-   ```
-
-Make sure all these files specify the same name to prevent multiple devices from appearing.
+The AirPlay device name is controlled by the `name` parameter in configuration files. The updated scripts now standardize this to "DAD" everywhere.
