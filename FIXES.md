@@ -1,53 +1,117 @@
-# Pi-DAD Startup Script Fixes
+# Pi-AirPlay Troubleshooting Fixes
 
-This document explains the fixes made to resolve startup issues with the Pi-DAD application.
+This document contains common issues and their solutions for the Pi-AirPlay system.
 
-## Issues Fixed
+## Port Conflicts
 
-1. **Port 5000 Conflict Resolution**
-   - Enhanced the port conflict detection and resolution process
-   - Added a more robust approach to killing processes using port 5000
-   - Added additional checks to ensure the port is truly free before starting the application
+### Problem
+The default configuration uses port 5000 for both shairport-sync and the Flask web server, causing conflicts.
 
-2. **Shairport-sync Metadata Pipe Configuration**
-   - Fixed the command-line syntax for shairport-sync metadata pipe configuration
-   - Updated from `-M metadata=/tmp/shairport-sync-metadata` (incorrect) to `-m pipe=/tmp/shairport-sync-metadata` (correct)
-   - Added version-specific syntax for different versions of shairport-sync
-   - Configured fallback options to ensure metadata is available regardless of version
-
-3. **General Improvements**
-   - Better error messages to aid in troubleshooting
-   - Improved detection and handling of IQaudio DAC hardware
-   - Added additional checks for shairport-sync startup success
-
-## How to Test
-
-Test the updated script by running:
+### Solution
+Run the `alt_port_fix.sh` script which:
+1. Configures shairport-sync to use port 5000 (AirPlay default)
+2. Configures the web interface to use port 8080
+3. Correctly sets permissions for the metadata pipe
 
 ```bash
-./start_pi_dad.sh
+./alt_port_fix.sh
 ```
 
-The script should now:
-1. Properly detect and handle port conflicts
-2. Correctly configure shairport-sync for metadata collection
-3. Work with your IQaudio DAC hardware
+## Audio Output Issues
 
-## Troubleshooting
+### Problem
+No audio output or incorrect audio device is being used.
 
-If you still encounter issues:
+### Solution
+The IQaudio DAC needs to be properly configured:
 
-1. **Port 5000 Still in Use**
-   - Try rebooting the Raspberry Pi
-   - Check for stuck processes: `sudo lsof -i :5000`
-   - Kill them manually: `sudo kill -9 <PID>`
+1. Make sure the DAC is correctly connected
+2. Identify your audio card number:
+   ```bash
+   aplay -l
+   cat /proc/asound/cards
+   ```
+3. Update the `output_device` in `/usr/local/etc/shairport-sync.conf` to match your DAC card number:
+   ```
+   alsa = {
+     output_device = "hw:X";  # Replace X with your card number (e.g., hw:4)
+     mixer_control_name = "PCM";
+   };
+   ```
 
-2. **Shairport-sync Issues**
-   - Check that shairport-sync is properly installed: `shairport-sync -V`
-   - Try reinstalling it: `sudo apt-get install --reinstall shairport-sync`
-   - Check permissions on the metadata pipe: `ls -la /tmp/shairport-sync-metadata`
+## Metadata Pipe Issues
 
-3. **Audio Device Issues**
-   - The "Unknown PCM" warnings in ALSA are often non-critical
-   - Check your audio device configuration: `aplay -l`
-   - Consider creating a custom `/etc/asound.conf` file for your specific audio setup
+### Problem
+Metadata not showing up in the web interface.
+
+### Solution
+Fix the metadata pipe permissions:
+
+```bash
+# Remove existing pipe
+rm -f /tmp/shairport-sync-metadata
+
+# Create new pipe with correct permissions
+mkfifo /tmp/shairport-sync-metadata
+chmod 666 /tmp/shairport-sync-metadata
+```
+
+## Startup Issues
+
+### Problem
+Pi-AirPlay doesn't start properly.
+
+### Solution
+Run the diagnostic to see what's wrong:
+
+```bash
+./diagnose_shairport.sh
+```
+
+Check the logs for any errors:
+```bash
+cat pi_airplay.log
+```
+
+## Web Interface Not Working
+
+### Problem
+Can't access the web interface.
+
+### Solution
+1. Make sure the web server is running on the correct port:
+   ```bash
+   ps aux | grep app_airplay
+   ```
+
+2. Check what port it's running on:
+   ```bash
+   netstat -tuln | grep python
+   ```
+
+3. If needed, restart the web interface manually:
+   ```bash
+   python3 app_airplay.py --port 8080
+   ```
+
+## Shairport-sync Issues
+
+### Problem
+Shairport-sync crashes or doesn't start.
+
+### Solution
+1. Check if it's running:
+   ```bash
+   pgrep -l shairport-sync
+   ```
+
+2. Start it manually to see error messages:
+   ```bash
+   shairport-sync -v
+   ```
+
+3. Reinstall if necessary:
+   ```bash
+   sudo apt-get update
+   sudo apt-get install --reinstall shairport-sync
+   ```

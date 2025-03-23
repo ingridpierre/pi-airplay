@@ -1,94 +1,79 @@
 #!/bin/bash
-# Pi-DAD Alternative Port Fix Script
-# This script uses an alternative port to avoid conflicts
+#
+# Alt Port Fix for Pi-AirPlay
+# This script resolves port conflicts between shairport-sync and the web interface
 
-# Make sure we're in the Pi-DAD directory
-cd "$(dirname "$0")"
+# Set up logging
+LOG_FILE="alt_port_fix.log"
+echo "$(date) - Running alternative port configuration..." > "$LOG_FILE"
 
-# Kill any existing shairport-sync processes
-echo "Stopping any existing shairport-sync processes..."
-sudo killall shairport-sync 2>/dev/null || true
-sleep 1
+# Function to log messages
+log_message() {
+    echo "$(date) - $1" | tee -a "$LOG_FILE"
+}
 
-# Ensure proper environment
-if [ -d "./venv" ]; then
-    echo "Using virtual environment..."
-    source ./venv/bin/activate
-    PYTHON="./venv/bin/python"
-else
-    echo "Using system Python..."
-    PYTHON="python3"
+# Stop any existing shairport-sync processes
+log_message "Stopping any existing shairport-sync processes..."
+pkill -f shairport-sync
+
+# Using virtual environment if it exists
+if [ -d "venv" ]; then
+    log_message "Using virtual environment..."
+    source venv/bin/activate
 fi
 
-# Create config directory if it doesn't exist
-sudo mkdir -p /usr/local/etc
+# Make sure the metadata pipe exists with the right permissions
+log_message "Setting up metadata pipe..."
+if [ -e /tmp/shairport-sync-metadata ]; then
+    rm /tmp/shairport-sync-metadata
+fi
+mkfifo /tmp/shairport-sync-metadata
+chmod 666 /tmp/shairport-sync-metadata
 
-# Create the shairport-sync config file with working settings
-echo "Creating shairport-sync configuration file..."
-sudo bash -c "cat > /usr/local/etc/shairport-sync.conf << EOL
-// Basic shairport-sync configuration
-general = 
-{
-  name = \"Pi-DAD\";
+# Create or update shairport-sync configuration
+CONF_FILE="/usr/local/etc/shairport-sync.conf"
+log_message "Creating shairport-sync configuration file..."
+mkdir -p /usr/local/etc
+cat > "$CONF_FILE" << EOF
+general = {
+  name = "Pi-AirPlay";
+  port = 5000;
 };
 
-alsa =
-{
-  output_device = \"hw:4\";  // IQaudio DAC card
+alsa = {
+  output_device = "hw:4";
+  mixer_control_name = "PCM";
 };
 
-metadata =
-{
-  enabled = \"yes\";
-  include_cover_art = \"yes\";
-  pipe_name = \"/tmp/shairport-sync-metadata\";
+metadata = {
+  enabled = "yes";
+  include_cover_art = "yes";
+  pipe_name = "/tmp/shairport-sync-metadata";
   pipe_timeout = 5000;
 };
+EOF
 
-diagnostics =
-{
-  log_verbosity = 1;  // 0 is silent, 1 is normal, 2 is verbose
-};
-EOL"
+# Start shairport-sync on port 5000
+log_message "Starting shairport-sync on port 5000..."
+shairport-sync -v >> "$LOG_FILE" 2>&1 &
 
-# Ensure the metadata pipe exists with correct permissions
-if [ -e /tmp/shairport-sync-metadata ]; then
-    echo "Setting metadata pipe permissions..."
-    sudo chmod 666 /tmp/shairport-sync-metadata
-else
-    echo "Creating metadata pipe..."
-    sudo mkfifo /tmp/shairport-sync-metadata
-    sudo chmod 666 /tmp/shairport-sync-metadata
-fi
-
-# Start shairport-sync with the configuration file
-echo "Starting shairport-sync..."
-sudo shairport-sync -c /usr/local/etc/shairport-sync.conf &
+# Wait a moment to ensure shairport-sync is running
 sleep 2
 
-# Check if it's running
-if pgrep "shairport-sync" > /dev/null; then
-    echo "✓ Shairport-sync started successfully!"
+# Check if shairport-sync is running
+if pgrep -f "shairport-sync" > /dev/null; then
+    log_message "shairport-sync started successfully on port 5000"
 else
-    echo "✗ Shairport-sync failed to start."
-    echo "  Trying fallback method..."
-    sudo shairport-sync -a "Pi-DAD" -o alsa -- -d hw:4 &
-    sleep 2
-    if pgrep "shairport-sync" > /dev/null; then
-        echo "✓ Shairport-sync started with fallback method!"
-    else
-        echo "✗ All attempts to start shairport-sync failed."
-    fi
+    log_message "ERROR: Failed to start shairport-sync"
 fi
 
-# Use alternative port 8080
-WEB_PORT=8080
-echo "✓ Using port $WEB_PORT for web interface"
+# Start the web interface on port 8080
+log_message "Starting web interface on port 8080..."
+python3 app_airplay.py --port 8080 >> "$LOG_FILE" 2>&1 &
 
-# Start the web interface on the available port
-echo "Starting Pi-DAD web interface on port $WEB_PORT..."
-echo "Access the interface at http://$(hostname -I | awk '{print $1}'):$WEB_PORT"
-echo ""
-echo "AirPlay device name: Pi-DAD"
-echo ""
-exec $PYTHON app.py --port $WEB_PORT
+log_message "Port conflict resolved!"
+echo "-----------------------------------------"
+echo "Port conflict resolved!"
+echo "AirPlay service running on port 5000"
+echo "Web interface available at: http://$(hostname -I | awk '{print $1}'):8080"
+echo "-----------------------------------------"
