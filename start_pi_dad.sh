@@ -130,8 +130,40 @@ check_port
 # Check if shairport-sync is running
 if ! pgrep -x "shairport-sync" > /dev/null; then
     echo "Starting shairport-sync..."
-    shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
-    sleep 1
+    
+    # Check if IQaudio DAC is present and set output accordingly
+    if aplay -l | grep -q "IQaudIO"; then
+        echo "IQaudio DAC detected, using hardware device..."
+        # Get the card number of the IQaudio device
+        CARD_NUM=$(aplay -l | grep IQaudIO | head -n 1 | awk -F'card ' '{print $2}' | cut -d: -f1)
+        
+        if [ -n "$CARD_NUM" ]; then
+            echo "Using IQaudio DAC on card $CARD_NUM for audio output"
+            AUDIO_DEVICE="hw:$CARD_NUM"
+            shairport-sync -d "$AUDIO_DEVICE" -M -o pipe -- /tmp/shairport-sync-metadata &
+        else
+            echo "Could not determine IQaudio card number, using default output"
+            shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
+        fi
+    else
+        echo "No IQaudio DAC detected, using default output"
+        shairport-sync -M -o pipe -- /tmp/shairport-sync-metadata &
+    fi
+    
+    # Check if shairport-sync started successfully
+    sleep 2
+    if ! pgrep -x "shairport-sync" > /dev/null; then
+        echo "ERROR: shairport-sync failed to start!"
+        echo "Trying again with explicit audio output..."
+        shairport-sync -a "Pi-DAD" -o alsa -- -d hw:0 -M -o pipe -- /tmp/shairport-sync-metadata &
+        sleep 2
+        if ! pgrep -x "shairport-sync" > /dev/null; then
+            echo "WARNING: shairport-sync still could not start."
+            echo "AirPlay functionality may not be available."
+        fi
+    else
+        echo "shairport-sync started successfully"
+    fi
 else
     echo "shairport-sync is already running"
 fi

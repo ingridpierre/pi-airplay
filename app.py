@@ -35,7 +35,8 @@ api_key = None
 api_key_paths = [
     '.acoustid_api_key',  # Current directory
     os.path.expanduser('~/.acoustid_api_key'),  # User's home directory
-    '/etc/acoustid_api_key'  # System-wide location
+    '/etc/acoustid_api_key',  # System-wide location
+    os.path.join('config', 'acoustid_api_key')  # Config directory
 ]
 
 for path in api_key_paths:

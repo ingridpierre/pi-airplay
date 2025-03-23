@@ -117,10 +117,39 @@ class MusicRecognitionService:
                 current_time = time.time()
                 if current_time - self.last_recognition_time >= self.recognition_cooldown:
                     logger.info("Attempting music recognition...")
+                    # Check for API key each time (in case it was updated)
+                    if not self.api_key:
+                        # Check common API key locations
+                        for path in [
+                            '.acoustid_api_key',  # Current directory
+                            os.path.expanduser('~/.acoustid_api_key'),  # User's home directory
+                            '/etc/acoustid_api_key',  # System-wide location
+                            os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config/acoustid_api_key')  # Config folder
+                        ]:
+                            try:
+                                if os.path.exists(path):
+                                    with open(path, 'r') as f:
+                                        self.api_key = f.read().strip()
+                                        if self.api_key:
+                                            logger.info(f"Loaded AcoustID API key from {path}")
+                                            break
+                            except Exception as e:
+                                logger.error(f"Error reading API key from {path}: {e}")
+                    
                     if not self.api_key:
                         logger.warning("AcoustID API key not set. Music recognition is disabled.")
-                        # Continue with simulation mode if no API key
-                        self._use_simulation_mode()
+                        # Only use simulation mode if requested
+                        if os.environ.get('PI_DAD_ENABLE_SIMULATION', '0') == '1':
+                            self._use_simulation_mode()
+                        else:
+                            # Just set metadata to "Waiting for music"
+                            self.current_metadata = {
+                                'title': "Waiting for music...",
+                                'artist': "Please set up AcoustID API key",
+                                'album': None,
+                                'artwork': None,
+                                'background_color': "#121212"
+                            }
                     else:
                         self._record_and_recognize()
                     self.last_recognition_time = time.time()
@@ -159,8 +188,14 @@ class MusicRecognitionService:
             if device_index is None:
                 logger.error("No microphone device found")
                 p.terminate()
-                # Fall back to simulation mode
-                self._use_simulation_mode()
+                # Just update metadata to show error
+                self.current_metadata = {
+                    'title': "Microphone not detected",
+                    'artist': "Please connect a microphone",
+                    'album': None,
+                    'artwork': None,
+                    'background_color': "#121212"
+                }
                 return
                 
             # Record audio
@@ -197,7 +232,14 @@ class MusicRecognitionService:
             
         except Exception as e:
             logger.error(f"Error during recording: {e}")
-            self._use_simulation_mode()
+            # Show error message instead of simulation
+            self.current_metadata = {
+                'title': "Error recording audio",
+                'artist': str(e),
+                'album': None,
+                'artwork': None,
+                'background_color': "#121212"
+            }
 
     def _identify_song(self, filename):
         """Identify a song from an audio file using AcoustID."""
@@ -266,7 +308,14 @@ class MusicRecognitionService:
                 
         except Exception as e:
             logger.error(f"Error identifying song: {e}")
-            self._use_simulation_mode()
+            # Show error instead of simulation
+            self.current_metadata = {
+                'title': "Error identifying music",
+                'artist': str(e),
+                'album': None,
+                'artwork': None,
+                'background_color': "#121212"
+            }
 
     def _use_simulation_mode(self):
         """Use simulation mode when no microphone is available."""
