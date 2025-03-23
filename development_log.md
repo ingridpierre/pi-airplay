@@ -14,7 +14,15 @@ A Raspberry Pi-powered system that bridges modern and analog music experiences, 
 
 ## Development History
 
-### [2025-03-23] Major Redesign: Adding Music Recognition
+### [2025-03-23] Installation Improvements and Pi Compatibility
+- Updated installation script to handle "externally-managed-environment" error on newer Raspberry Pi OS
+- Implemented virtual environment approach for both installation types to ensure compatibility
+- Enhanced file copying and permissions handling in the installation process
+- Updated README with detailed installation instructions and troubleshooting section
+- Improved error handling for common installation issues
+- Added simulation mode testing via the /test-recognition endpoint
+
+### [2025-03-22] Major Redesign: Adding Music Recognition
 - Pivoted from purely AirPlay metadata display to including microphone-based song recognition
 - Installed necessary audio fingerprinting and recognition libraries (acoustid, pydub, pyaudio, musicbrainzngs)
 - Created new music_recognition.py utility to identify songs from microphone input
@@ -42,14 +50,19 @@ A Raspberry Pi-powered system that bridges modern and analog music experiences, 
 - Microphone recognition triggered periodically rather than continuously to reduce CPU usage
 - Socket.IO for real-time updates without page refreshes
 - Separation of AirPlay control and music recognition into distinct modules for maintainability
+- Virtual environment based installation to ensure compatibility with newer Raspberry Pi OS versions
+- Comprehensive installation script to streamline deployment on various Pi configurations
 
 ## Key Configuration Notes
 - Shairport-sync configured to write metadata to a named pipe
 - IQaudio DAC requires specific ALSA configuration
 - Web interface runs on port 5000
-- System services configured for auto-start on boot
-- AcoustID API key required for music recognition functionality
+- System services configured for auto-start on boot via systemd
+- Python dependencies isolated in virtual environment to avoid conflicts
+- Application files installed to /opt/pi-dad for consistent location
+- AcoustID API key required for music recognition functionality (stored in /etc/acoustid_api_key)
 - USB microphone needed for analog music recognition
+- Simulation mode available for testing without microphone via /test-recognition endpoint
 
 ## Future Enhancements
 - Add volume control for AirPlay and system output
