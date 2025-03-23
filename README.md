@@ -1,5 +1,37 @@
 # Pi-DAD: Raspberry Pi Digital Audio Display
 
+## Troubleshooting
+
+### Shairport-sync Issues
+
+If shairport-sync isn't starting properly:
+
+1. **Check the permissions**: Run `sudo chmod 666 /tmp/shairport-sync-metadata` to ensure proper pipe permissions.
+
+2. **Check for stale PID files**: Run `sudo find /var/run /run -name "shairport*" -delete` to remove stale PID files.
+
+3. **Verify installation**: Run `shairport-sync -V` to check if it's installed and get the version number.
+
+4. **Try a simpler command**: Run `sudo shairport-sync -a "Pi-DAD" -o alsa` for a basic configuration without metadata.
+
+5. **Check for conflicts**: Run `sudo systemctl status shairport-sync` to see if the system service is active and potentially conflicting.
+
+6. **Appropriate shutdown**: Always use `sudo pkill shairport-sync` to stop existing processes before starting new ones.
+
+7. **Check IQaudio DAC**: If using IQaudio DAC, ensure it appears in `aplay -l` output.
+
+### AcoustID API Key Setup
+
+To use the music recognition feature:
+
+1. Get an API key from [AcoustID](https://acoustid.org/login).
+2. Save it to any of these locations:
+   - `.acoustid_api_key` in the Pi-DAD directory
+   - `~/.acoustid_api_key` in your home directory
+   - `/etc/acoustid_api_key` system-wide
+   - `config/acoustid_api_key` in the Pi-DAD config directory
+3. Alternatively, use the setup page at http://[pi-ip]:5000/setup
+
 A Raspberry Pi-powered AirPlay receiver that transforms music streaming into an interactive, user-friendly experience. The system provides seamless audio playback through your audio hardware with a modern web interface and intuitive music recognition capabilities.
 
 ## Features

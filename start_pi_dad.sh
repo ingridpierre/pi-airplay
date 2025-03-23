@@ -161,17 +161,45 @@ fi
 
 # Check if shairport-sync started successfully
 sleep 2
-if ! pgrep -x "shairport-sync" > /dev/null; then
+if ! pgrep "shairport-sync" > /dev/null; then
     echo "First attempt failed! Trying alternate configuration..."
-    # Try with more basic settings
-    sudo shairport-sync -a "Pi-DAD" -o alsa &
-    sleep 2
-    if ! pgrep -x "shairport-sync" > /dev/null; then
-        echo "WARNING: shairport-sync still could not start."
-        echo "AirPlay functionality may not be available."
+
+    # Check shairport-sync version
+    SHAIRPORT_VERSION=$(shairport-sync -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+    echo "Detected shairport-sync version: $SHAIRPORT_VERSION"
+    
+    # Try with alternate syntax based on version
+    if [[ "$SHAIRPORT_VERSION" == 3.* ]]; then
+        # Version 3.x syntax
+        echo "Using version 3.x command syntax"
+        sudo shairport-sync -a "Pi-DAD" -o alsa -- -d default -m pipe=/tmp/shairport-sync-metadata &
     else
-        echo "shairport-sync started with basic configuration"
-        echo "Metadata pipe won't be available for album art"
+        # Try version 4.x syntax or basic configuration
+        echo "Using version 4.x or basic command syntax"
+        sudo shairport-sync -a "Pi-DAD" -o alsa &
+    fi
+    
+    sleep 2
+    if ! pgrep "shairport-sync" > /dev/null; then
+        echo "WARNING: shairport-sync still could not start."
+        echo "Trying one more time with the following debug steps:"
+        echo "1. Stopping any existing daemon"
+        sudo systemctl stop shairport-sync 2>/dev/null || true
+        sudo killall shairport-sync 2>/dev/null || true
+        sleep 1
+        echo "2. Starting with no output redirection"
+        sudo shairport-sync -a "Pi-DAD" -o alsa &
+        sleep 2
+        
+        if ! pgrep "shairport-sync" > /dev/null; then
+            echo "ERROR: AirPlay functionality is not available!"
+            echo "Please check your shairport-sync installation."
+        else
+            echo "shairport-sync finally started with minimal configuration."
+            echo "Metadata and album artwork won't be available."
+        fi
+    else
+        echo "shairport-sync started with alternate configuration"
     fi
 else
     echo "shairport-sync started successfully"
