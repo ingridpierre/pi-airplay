@@ -36,7 +36,7 @@ log_message "Creating shairport-sync configuration file..."
 mkdir -p /usr/local/etc
 cat > "$CONF_FILE" << EOF
 general = {
-  name = "Pi-AirPlay";
+  name = "DAD";
   port = 5000;
 };
 

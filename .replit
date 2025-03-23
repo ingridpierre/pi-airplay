@@ -15,6 +15,14 @@ author = "agent"
 task = "workflow.run"
 args = "Pi-AirPlay Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Shairport-Sync Service"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Avahi Service"
+
 [[workflows.workflow]]
 name = "Pi-AirPlay Server"
 author = "agent"
@@ -29,6 +37,34 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python app_airplay.py --port 8000 --host 0.0.0.0"
 waitForPort = 8000
+
+[[workflows.workflow]]
+name = "Shairport-Sync Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "chmod 666 /tmp/shairport-sync-metadata 2>/dev/null || (mkfifo /tmp/shairport-sync-metadata && chmod 666 /tmp/shairport-sync-metadata) && shairport-sync -c config/shairport-sync.conf -v"
+
+[[workflows.workflow]]
+name = "Avahi Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "nix-shell -p avahi --run \"avahi-daemon -D\" && echo \"Avahi daemon started\""
 
 [deployment]
 run = ["sh", "-c", "python app.py"]
