@@ -225,4 +225,20 @@ fi
 
 # Start the Pi-DAD application
 echo "Starting Pi-DAD..."
-exec $PYTHON app.py
+# Try different ports if 5000 is still busy despite our efforts
+if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null; then
+    echo "WARNING: Port 5000 is still in use despite our efforts to free it."
+    # Try alternative ports
+    for alt_port in 5001 5002 8080 8000; do
+        echo "Trying alternative port $alt_port..."
+        if ! lsof -Pi :$alt_port -sTCP:LISTEN -t >/dev/null; then
+            echo "Port $alt_port is available. Using it instead."
+            exec $PYTHON app.py --port $alt_port
+            break
+        fi
+    done
+    echo "ERROR: All alternative ports are also in use. Please restart your Raspberry Pi."
+    exit 1
+else
+    exec $PYTHON app.py
+fi

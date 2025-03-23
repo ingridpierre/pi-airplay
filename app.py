@@ -239,15 +239,22 @@ def handle_disconnect():
     logger.info("Client disconnected")
 
 if __name__ == '__main__':
+    import argparse
+    
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Pi-DAD: Raspberry Pi Digital Audio Display')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the web server on (default: 5000)')
+    args = parser.parse_args()
+    
     try:
-        logger.info("Starting Flask application on port 5000...")
+        logger.info(f"Starting Flask application on port {args.port}...")
         
         # Start the metadata update thread
         metadata_thread.start()
         
         # Use 0.0.0.0 to ensure the server is accessible externally
         # Set use_reloader to False since we're in a thread
-        socketio.run(app, host='0.0.0.0', port=5000, debug=True, 
+        socketio.run(app, host='0.0.0.0', port=args.port, debug=True, 
                     use_reloader=False, log_output=True, allow_unsafe_werkzeug=True)
                     
     except Exception as e:
