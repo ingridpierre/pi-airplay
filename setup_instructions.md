@@ -55,7 +55,11 @@ sudo reboot
 
 ### 4. Install Python Dependencies
 
-For newer versions of Raspberry Pi OS (Bullseye or Bookworm), you'll need to use a virtual environment to avoid the "externally-managed-environment" error:
+There are two approaches for handling dependencies on newer Raspberry Pi OS versions (Bullseye or Bookworm) that have the "externally-managed-environment" restriction:
+
+#### Option 1: Virtual Environment (Recommended)
+
+This keeps dependencies isolated and won't interfere with system packages:
 
 ```bash
 # Install required build dependencies first
@@ -84,14 +88,24 @@ pip install librosa  # This might take a while on Raspberry Pi
 pip install pyacoustid
 ```
 
-If you're using an older version of Raspberry Pi OS and prefer system-wide installation, you can try:
+When using this option, the included `start_music_display.sh` script will handle activating the virtual environment when the service starts.
+
+#### Option 2: System-wide Installation Script
+
+If you prefer installing packages system-wide, you can use the included script that works around the "externally-managed-environment" restriction:
 
 ```bash
-sudo apt update
-sudo apt install -y python3-flask python3-flask-socketio python3-eventlet python3-pyaudio python3-numpy python3-pydub python3-requests python3-sounddevice python3-pillow
+# Make the script executable
+chmod +x system_install_dependencies.sh
 
-# Install packages that aren't available via apt
-sudo pip3 install pyacoustid musicbrainzngs colorthief librosa
+# Run the script (may take some time)
+./system_install_dependencies.sh
+```
+
+If you use this option, you should modify the `config/music-display.service` file to use system Python instead of the virtual environment by changing the `ExecStart` line to:
+
+```
+ExecStart=/usr/bin/python3 /home/pi/music-display/app.py
 ```
 
 ### 5. Get an AcoustID API Key
@@ -116,19 +130,36 @@ mkdir -p static/artwork
 
 ### 7. Set Up the Web Interface Service
 
-```bash
-# Create log file with appropriate permissions
-sudo touch /var/log/music-display.log
-sudo chown pi:pi /var/log/music-display.log
+We've included a service setup script that automatically detects whether you're using a virtual environment or system Python and configures the service accordingly:
 
-# Copy the service file
+```bash
+# Make the script executable
+chmod +x start_music_display.sh system_service.sh
+
+# Run the service setup script
+./system_service.sh
+```
+
+The script will:
+1. Detect if you're using a virtual environment
+2. Create the appropriate service file
+3. Install and start the service
+4. Show you the current status
+
+If you want to view the logs at any time:
+
+```bash
+# View logs from the service
+sudo journalctl -u music-display -f
+```
+
+**Note:** If you prefer manual setup, the service file is available at `config/music-display.service`. You can edit it as needed and install it with:
+
+```bash
 sudo cp config/music-display.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable music-display
 sudo systemctl start music-display
-
-# Verify service status
-sudo systemctl status music-display
 ```
 
 ### 8. Configure Chromium to Start in Kiosk Mode

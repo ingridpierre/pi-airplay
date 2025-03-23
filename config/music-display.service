@@ -5,13 +5,11 @@ After=network.target
 [Service]
 User=pi
 WorkingDirectory=/home/pi/music-display
-# Use absolute path to Python in virtual environment
-ExecStart=/home/pi/music-display/.venv/bin/python /home/pi/music-display/app.py
-# If you want to use system Python instead, comment the line above and uncomment this:
-# ExecStart=/usr/bin/python3 /home/pi/music-display/app.py
+# Using a bash script wrapper that handles virtual environment activation
+ExecStart=/bin/bash /home/pi/music-display/start_music_display.sh
 Restart=always
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=music-display
 Environment=PYTHONUNBUFFERED=1
 
