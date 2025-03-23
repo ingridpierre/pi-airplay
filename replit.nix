@@ -1,5 +1,15 @@
 {pkgs}: {
   deps = [
+    pkgs.ffmpeg
+    pkgs.chromaprint
+    pkgs.zlib
+    pkgs.openjpeg
+    pkgs.libxcrypt
+    pkgs.libwebp
+    pkgs.libtiff
+    pkgs.libjpeg
+    pkgs.libimagequant
+    pkgs.lcms2
     pkgs.tk
     pkgs.tcl
     pkgs.qhull

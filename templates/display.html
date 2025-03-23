@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Audio Display</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body id="main-background">
+    <div class="status-indicator" id="status-indicator"></div>
+    
+    <div class="container">
+        <div class="album-art-container">
+            <div class="album-art">
+                <img src="/static/artwork/default_album.svg" alt="Album Artwork" id="album-art">
+            </div>
+        </div>
+        
+        <div class="track-info">
+            <div class="track-title" id="track-title">Not Playing</div>
+            <div class="track-artist" id="track-artist">Waiting for music</div>
+            <div class="track-album" id="track-album"></div>
+        </div>
+    </div>
+
+    <script>
+        // Connect to Socket.IO
+        const socket = io();
+        
+        // DOM elements
+        const albumArt = document.getElementById('album-art');
+        const trackTitle = document.getElementById('track-title');
+        const trackArtist = document.getElementById('track-artist');
+        const trackAlbum = document.getElementById('track-album');
+        const background = document.getElementById('main-background');
+        const statusIndicator = document.getElementById('status-indicator');
+        
+        // Default background color
+        let currentBackgroundColor = "#121212";
+        
+        // Update status indicator
+        function updateStatus(status) {
+            statusIndicator.className = 'status-indicator';
+            
+            if (status === 'active') {
+                statusIndicator.classList.add('active');
+            } else if (status === 'inactive') {
+                statusIndicator.classList.add('inactive');
+            } else if (status === 'listening') {
+                statusIndicator.classList.add('listening');
+            }
+        }
+        
+        // Handle metadata updates from the server
+        socket.on('metadata_update', function(data) {
+            console.log("New metadata received:", data);
+            
+            // Update track information
+            trackTitle.textContent = data.title || 'Unknown Title';
+            trackArtist.textContent = data.artist || 'Unknown Artist';
+            trackAlbum.textContent = data.album || '';
+            
+            // Update album artwork
+            if (data.artwork) {
+                albumArt.src = data.artwork;
+                albumArt.classList.remove('default-album-art');
+                updateStatus('active');
+            } else {
+                albumArt.src = '/static/artwork/default_album.svg';
+                albumArt.classList.add('default-album-art');
+                
+                if (data.title === 'Not Playing') {
+                    updateStatus('inactive');
+                } else {
+                    updateStatus('listening');
+                }
+            }
+            
+            // Update background color with transition
+            if (data.background_color && data.background_color !== currentBackgroundColor) {
+                currentBackgroundColor = data.background_color;
+                background.style.backgroundColor = currentBackgroundColor;
+            }
+        });
+        
+        // Request initial metadata on page load
+        function updateMetadata() {
+            fetch('/now-playing')
+                .then(response => response.json())
+                .then(data => {
+                    socket.emit('metadata_update', data);
+                })
+                .catch(error => {
+                    console.error('Error fetching metadata:', error);
+                    updateStatus('inactive');
+                });
+        }
+        
+        // Initial update and periodic refresh
+        updateMetadata();
+        setInterval(updateMetadata, 5000);
+        
+        // Handle connection events
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+            updateStatus('inactive');
+        });
+    </script>
+</body>
+</html>
