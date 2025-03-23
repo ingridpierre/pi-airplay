@@ -58,7 +58,7 @@ If you prefer to install components manually:
    ```bash
    sudo mkdir -p /opt/pi-dad
    sudo cp -r app.py utils static templates /opt/pi-dad/
-   sudo chown -R pi:pi /opt/pi-dad
+   sudo chown -R $(whoami):$(whoami) /opt/pi-dad
    ```
 
 3. Create a virtual environment and install dependencies:
@@ -92,8 +92,8 @@ If you prefer to install components manually:
    WorkingDirectory=/opt/pi-dad
    Restart=always
    RestartSec=5
-   User=pi
-   Group=pi
+   User=$(whoami)
+   Group=$(whoami)
    Environment=PYTHONUNBUFFERED=1
 
    [Install]
@@ -161,6 +161,12 @@ http://[your-pi-ip-address]:5000/setup
 ## Troubleshooting
 
 - **"externally-managed-environment" Error**: If you see this error during installation, it means your Python installation is managed by the system package manager. Our installation script handles this by using virtual environments.
+
+- **"Invalid user: 'pi:pi'" Error**: This occurs if your username is not "pi" (the default Raspberry Pi username). We've updated the installation script to automatically detect your username, so download the latest version. If you still encounter this error, modify the script to replace "pi" with your actual username:
+  ```bash
+  # Find all instances of "pi:pi" in the install script and replace with your username
+  sed -i 's/pi:pi/yourusername:yourusername/g' install_pi_dad.sh
+  ```
 
 - **"ModuleNotFoundError: No module named 'flask_socketio'"**: This means the Flask-SocketIO package is missing. Install it with:
   ```bash
