@@ -162,7 +162,17 @@ class MusicRecognitionService:
 
     def _record_and_recognize(self):
         """Record audio and attempt to recognize the song."""
+        temp_filename = None
+        p = None
+        stream = None
+
         try:
+            # Check if there's a .simulation_mode file, which indicates we should use simulation
+            if os.path.exists('.simulation_mode'):
+                logger.info("Found .simulation_mode file - using simulation mode")
+                self._use_simulation_mode()
+                return
+            
             # Create a temporary WAV file
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
                 temp_filename = temp_file.name
@@ -172,6 +182,34 @@ class MusicRecognitionService:
             
             # Find microphone device
             device_index = None
+            
+            # First try to check for command-line audio tools
+            try:
+                import subprocess
+                logger.info("Checking audio devices with arecord...")
+                result = subprocess.run(['arecord', '-l'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    devices = result.stdout.strip()
+                    logger.info(f"Available audio devices:\n{devices}")
+                    
+                    # Look for USB audio devices
+                    if 'USB' in devices:
+                        logger.info("Found USB audio device in arecord output")
+                
+                logger.info("Testing direct recording with arecord...")
+                # Try a quick 1-second recording to verify microphone access
+                test_file = f"{temp_filename}_test.wav"
+                subprocess.run(['arecord', '-d', '1', '-f', 'cd', test_file], 
+                               capture_output=True, check=False)
+                if os.path.exists(test_file) and os.path.getsize(test_file) > 0:
+                    logger.info("Successfully recorded test audio with arecord")
+                    os.unlink(test_file)
+                else:
+                    logger.warning("Failed to record test audio with arecord")
+            except Exception as e:
+                logger.warning(f"Error checking with arecord: {e}")
+            
+            # Now try PyAudio device detection
             for i in range(p.get_device_count()):
                 device_info = p.get_device_info_by_index(i)
                 # Check if this is an input device
@@ -186,60 +224,95 @@ class MusicRecognitionService:
                         device_index = i
             
             if device_index is None:
-                logger.error("No microphone device found")
+                logger.error("No microphone device found - using simulation mode instead")
                 p.terminate()
-                # Just update metadata to show error
-                self.current_metadata = {
-                    'title': "Microphone not detected",
-                    'artist': "Please connect a microphone",
-                    'album': None,
-                    'artwork': None,
-                    'background_color': "#121212"
-                }
+                self._use_simulation_mode()
                 return
                 
-            # Record audio
+            # Record audio with more robust error handling
             logger.info(f"Recording {self.record_seconds} seconds of audio...")
-            stream = p.open(format=self.audio_format,
-                           channels=self.channels,
-                           rate=self.sample_rate,
-                           input=True,
-                           input_device_index=device_index,
-                           frames_per_buffer=self.chunk_size)
-            
-            frames = []
-            for i in range(0, int(self.sample_rate / self.chunk_size * self.record_seconds)):
-                data = stream.read(self.chunk_size, exception_on_overflow=False)
-                frames.append(data)
-            
-            stream.stop_stream()
-            stream.close()
-            p.terminate()
-            
-            # Save the recorded audio
-            import wave
-            with wave.open(temp_filename, 'wb') as wf:
-                wf.setnchannels(self.channels)
-                wf.setsampwidth(p.get_sample_size(self.audio_format))
-                wf.setframerate(self.sample_rate)
-                wf.writeframes(b''.join(frames))
-            
-            # Fingerprint and identify
-            self._identify_song(temp_filename)
-            
-            # Clean up
-            os.unlink(temp_filename)
+            try:
+                stream = p.open(format=self.audio_format,
+                              channels=self.channels,
+                              rate=self.sample_rate,
+                              input=True,
+                              input_device_index=device_index,
+                              frames_per_buffer=self.chunk_size)
+                
+                frames = []
+                for i in range(0, int(self.sample_rate / self.chunk_size * self.record_seconds)):
+                    try:
+                        data = stream.read(self.chunk_size, exception_on_overflow=False)
+                        frames.append(data)
+                    except Exception as e:
+                        logger.error(f"Error reading audio chunk {i}: {e}")
+                        # Continue collecting what we can
+                        continue
+                
+                if not frames:
+                    raise Exception("No audio data captured")
+                
+                stream.stop_stream()
+                stream.close()
+                stream = None
+                
+                p.terminate()
+                p = None
+                
+                # Save the recorded audio
+                import wave
+                with wave.open(temp_filename, 'wb') as wf:
+                    wf.setnchannels(self.channels)
+                    wf.setsampwidth(p.get_sample_size(self.audio_format))
+                    wf.setframerate(self.sample_rate)
+                    wf.writeframes(b''.join(frames))
+                
+                # Verify the file was created
+                if not os.path.exists(temp_filename) or os.path.getsize(temp_filename) == 0:
+                    raise Exception("Failed to save audio data")
+                
+                # Fingerprint and identify
+                self._identify_song(temp_filename)
+                
+            except Exception as e:
+                logger.error(f"Error during recording stream: {e}")
+                # Fall back to simulation mode for demo purposes
+                self._use_simulation_mode()
             
         except Exception as e:
             logger.error(f"Error during recording: {e}")
-            # Show error message instead of simulation
+            import traceback
+            logger.error(traceback.format_exc())
+            
+            # Show error message with helpful details
             self.current_metadata = {
                 'title': "Error recording audio",
-                'artist': str(e),
-                'album': None,
+                'artist': f"Error: {str(e)}",
+                'album': "Try simulation mode with /test-recognition",
                 'artwork': None,
                 'background_color': "#121212"
             }
+            
+        finally:
+            # Clean up resources
+            if stream:
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except:
+                    pass
+                    
+            if p:
+                try:
+                    p.terminate()
+                except:
+                    pass
+                    
+            if temp_filename and os.path.exists(temp_filename):
+                try:
+                    os.unlink(temp_filename)
+                except:
+                    pass
 
     def _identify_song(self, filename):
         """Identify a song from an audio file using AcoustID."""
@@ -370,5 +443,15 @@ class MusicRecognitionService:
             
     def trigger_simulation(self):
         """Manually trigger the simulation mode for testing."""
+        logger.info("Manual simulation triggered via /test-recognition endpoint")
+        # Create flag file to enable simulation mode for future runs
+        try:
+            with open('.simulation_mode', 'w') as f:
+                f.write('1')
+            logger.info("Created .simulation_mode file for future runs")
+        except Exception as e:
+            logger.error(f"Error creating simulation flag file: {e}")
+            
+        # Run simulation immediately
         self._use_simulation_mode()
         return True

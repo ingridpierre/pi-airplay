@@ -1,0 +1,136 @@
+ivpi@pi:~/Pi-DAD $ ./start_pi_dad.sh
+Using virtual environment...
+Checking audio devices...
+USB audio device detected.
+Stopping existing shairport-sync...
+Setting metadata pipe permissions...
+Starting shairport-sync...
+IQaudio DAC detected, using hardware device...
+Using IQaudio DAC on card 3 for audio output
+warning: The "general" "log_verbosity" setting is deprecated. Please use the "diagnostics" "log_verbosity" setting instead.
+./start_pi_dad.sh: line 183: 48965 Segmentation fault      sudo SHAIRPORT_SYNC_NAME="Pi-DAD" shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d hw:$CARD_NUM
+First attempt failed! Trying alternate configuration...
+Detected shairport-sync version: 3.3.8
+Using version 3.x command syntax
+warning: The "general" "log_verbosity" setting is deprecated. Please use the "diagnostics" "log_verbosity" setting instead.
+./start_pi_dad.sh: line 226: 48997 Segmentation fault      sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata -- -d default
+WARNING: shairport-sync still could not start.
+Trying one more time with the following debug steps:
+1. Stopping any existing daemon
+2. Starting with minimal configuration
+warning: The "general" "log_verbosity" setting is deprecated. Please use the "diagnostics" "log_verbosity" setting instead.
+./start_pi_dad.sh: line 226: 49027 Segmentation fault      sudo shairport-sync -a "Pi-DAD" -o alsa -m pipe=/tmp/shairport-sync-metadata
+ERROR: AirPlay functionality is not available!
+Please check your shairport-sync installation.
+Starting Pi-DAD...
+2025-03-22 23:23:41,039 - __main__ - INFO - Loaded AcoustID API key from .acoustid_api_key
+2025-03-22 23:23:41,044 - __main__ - INFO - Starting Flask application on port 5000...
+2025-03-22 23:23:41,045 - __main__ - INFO - Starting metadata update thread
+2025-03-22 23:23:41,046 - utils.music_recognition - INFO - Attempting music recognition...
+2025-03-22 23:23:41,046 - utils.music_recognition - INFO - Music recognition service started
+(48941) wsgi starting up on http://0.0.0.0:5000
+ALSA lib pcm_asym.c:105:(_snd_pcm_asym_open) capture slave is not defined
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.front.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM front
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround40.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround40
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround41
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround50
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround51
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround71.0:CARD=0'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM surround71
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM iec958
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_a52.c:1001:(_snd_pcm_a52_open) a52 is only for playback
+ALSA lib confmisc.c:1369:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=6,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5180:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5703:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM iec958:{AES0 0x6 AES1 0x82 AES2 0x0 AES3 0x2 CARD 0}
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib pcm_dmix.c:999:(snd_pcm_dmix_open) unable to open slave
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+2025-03-22 23:23:41,161 - utils.music_recognition - INFO - Found microphone: pulse
+2025-03-22 23:23:41,162 - utils.music_recognition - INFO - Found microphone: default
+2025-03-22 23:23:41,162 - utils.music_recognition - INFO - Recording 10 seconds of audio...
+(48941) accepted ('192.168.4.91', 49422)
+Invalid session AHP1W4IivjBLyqkxAAAC (further occurrences of this error will be logged with level INFO)
+2025-03-22 23:24:01,160 - engineio.server - ERROR - Invalid session AHP1W4IivjBLyqkxAAAC (further occurrences of this error will be logged with level INFO)
+192.168.4.91 - - [22/Mar/2025 23:24:01] "GET /socket.io/?EIO=4&transport=websocket&sid=AHP1W4IivjBLyqkxAAAC HTTP/1.1" 400 244 0.003854
+(48941) accepted ('192.168.4.91', 34046)
+192.168.4.91 - - [22/Mar/2025 23:24:03] "GET /socket.io/?EIO=4&transport=websocket&sid=WgeNn-H4CMfhw40kAAAE HTTP/1.1" 400 244 0.000793
+(48941) accepted ('192.168.4.91', 34064)
+192.168.4.91 - - [22/Mar/2025 23:24:07] "GET /socket.io/?EIO=4&transport=websocket&sid=mD1-5fRPIBRCvit-AAAG HTTP/1.1" 400 244 0.010276
+(48941) accepted ('192.168.4.91', 34072)
+192.168.4.91 - - [22/Mar/2025 23:24:07] "GET /socket.io/?EIO=4&transport=polling&t=PN11tb5&sid=mD1-5fRPIBRCvit-AAAG HTTP/1.1" 400 213 0.002620
+192.168.4.91 - - [22/Mar/2025 23:24:07] "POST /socket.io/?EIO=4&transport=polling&t=PN11tc0&sid=mD1-5fRPIBRCvit-AAAG HTTP/1.1" 400 268 0.000728
+192.168.4.91 - - [22/Mar/2025 23:24:08] "GET /socket.io/?EIO=4&transport=polling&t=PN11tqs&sid=NsfTRcKUlyKYtu0OAAAI HTTP/1.1" 400 213 0.001439
+192.168.4.91 - - [22/Mar/2025 23:24:08] "POST /socket.io/?EIO=4&transport=polling&t=PN11tr-&sid=NsfTRcKUlyKYtu0OAAAI HTTP/1.1" 400 268 0.000792
+ALSA lib pcm_pulse.c:758:(pulse_prepare) PulseAudio: Unable to create stream: Timeout
+
+Expression 'alsa_snd_pcm_prepare( stream->capture.pcm )' failed in 'src/hostapi/alsa/pa_linux_alsa.c', line: 2932
+Expression 'AlsaStart( stream, 0 )' failed in 'src/hostapi/alsa/pa_linux_alsa.c', line: 3002
+2025-03-22 23:24:11,246 - utils.music_recognition - ERROR - Error during recording: [Errno -9999] Unanticipated host error
+2025-03-22 23:24:41,247 - utils.music_recognition - INFO - Attempting music recognition...
+2025-03-22 23:24:41,248 - utils.music_recognition - INFO - Found microphone: pulse
+2025-03-22 23:24:41,248 - utils.music_recognition - INFO - Found microphone: default
+2025-03-22 23:24:41,248 - utils.music_recognition - INFO - Recording 10 seconds of audio...
+2025-03-22 23:24:52,231 - utils.music_recognition - ERROR - Error identifying song: status: error
