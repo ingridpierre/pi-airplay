@@ -1,21 +1,36 @@
 """
-Audio control module that handles AirPlay metadata from shairport-sync.
+Improved audio control module for shairport-sync metadata - based on shairport-decoder.
 """
 
 import os
 import logging
-import re
-import json
 import time
 import base64
+import io
+import select
 import binascii
-import xml.etree.ElementTree as ET
+import threading
+import struct
+import json
 from pathlib import Path
+from PIL import Image, ImageDraw
+from colorthief import ColorThief
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Airplay metadata codes
+CODE_ALBUM_NAME = 'asal'
+CODE_ARTIST = 'asar'
+CODE_TITLE = 'minm'
+CODE_ARTWORK = 'PICT'
+CODE_VOLUME = 'pvol'
+CODE_PROGRESS = 'prgr'
+CODE_DACP_ID = 'daid'
+CODE_ACTIVE_REMOTE = 'acre'
+CODE_CLIENT_IP = 'clip'
 
 class AudioController:
     def __init__(self, pipe_path='/tmp/shairport-sync-metadata'):
@@ -26,20 +41,34 @@ class AudioController:
             pipe_path: Path to the shairport-sync metadata pipe
         """
         self.pipe_path = pipe_path
-        self.last_metadata = {}
+        self.pipe_fd = None
+        self.running = True
+        self.metadata_lock = threading.Lock()
         self.current_metadata = {
             'title': "Not Playing",
             'artist': None,
             'album': None,
             'artwork': None,
-            'background_color': "#121212"  # Default dark background
+            'background_color': "#121212",  # Default dark background
+            'volume': 0,
+            'progress': None
         }
-        self.last_check_time = 0
-        self.check_interval = 2  # seconds
+        self.last_activity_time = 0
         self.artwork_path = Path('static/artwork/current_album.jpg')
+        self.artwork_default = '/static/artwork/default_album.svg'
+        
+        # Ensure the artwork directory exists
+        os.makedirs(os.path.dirname(self.artwork_path), exist_ok=True)
         
         # Ensure the pipe exists with proper permissions
         self._ensure_metadata_pipe()
+        
+        # Start the metadata reader thread
+        self.reader_thread = threading.Thread(target=self._metadata_reader_thread)
+        self.reader_thread.daemon = True
+        self.reader_thread.start()
+        
+        logger.info("AudioController initialized and metadata reader thread started")
 
     def _ensure_metadata_pipe(self):
         """Ensure the metadata pipe exists with correct permissions."""
@@ -54,146 +83,227 @@ class AudioController:
                 
             # Set permissions to be readable by all users
             os.chmod(self.pipe_path, 0o666)
+            logger.info(f"Metadata pipe setup complete: {self.pipe_path}")
         except Exception as e:
             logger.error(f"Error setting up metadata pipe: {e}")
 
-    def _parse_metadata(self, data):
-        """Parse the metadata from the pipe data with improved error handling."""
-        result = {}
-        
+    def _extract_dominant_color(self, artwork_data):
+        """
+        Extract the dominant color from the artwork for background color.
+        """
         try:
-            # Try to parse as XML
-            if b'<item>' in data:
-                root = ET.fromstring(data.decode('utf-8', errors='ignore'))
-                
-                for item in root.findall('.//item'):
-                    item_type = item.get('type')
-                    
-                    if item_type == 'ssnc':
-                        code = item.findtext('code')
-                        if code == 'PICT':
-                            # Base64 encoded image data
-                            raw_data = item.findtext('data')
-                            if raw_data:
-                                try:
-                                    # Decode and save the image
-                                    img_data = base64.b64decode(raw_data)
-                                    with open(self.artwork_path, 'wb') as f:
-                                        f.write(img_data)
-                                    result['artwork'] = '/static/artwork/current_album.jpg'
-                                except (binascii.Error, OSError) as e:
-                                    logger.error(f"Error saving artwork: {e}")
-                    
-                    elif item_type == 'core':
-                        code = item.findtext('code')
-                        text = item.findtext('data')
-                        
-                        if code == 'asar' and text:  # Artist
-                            result['artist'] = text
-                        elif code == 'asal' and text:  # Album
-                            result['album'] = text
-                        elif code == 'minm' and text:  # Track name
-                            result['title'] = text
-                            
-            # Try to parse as JSON
-            else:
-                try:
-                    json_data = json.loads(data.decode('utf-8', errors='ignore'))
-                    
-                    if 'metadata' in json_data:
-                        metadata = json_data['metadata']
-                        if 'minm' in metadata:
-                            result['title'] = metadata['minm']
-                        if 'asar' in metadata:
-                            result['artist'] = metadata['asar']
-                        if 'asal' in metadata:
-                            result['album'] = metadata['asal']
-                except json.JSONDecodeError:
-                    # Not valid JSON, try regex parsing
-                    text = data.decode('utf-8', errors='ignore')
-                    
-                    # Try to extract metadata with regex
-                    title_match = re.search(r'"minm"\s*:\s*"([^"]+)"', text)
-                    if title_match:
-                        result['title'] = title_match.group(1)
-                    
-                    artist_match = re.search(r'"asar"\s*:\s*"([^"]+)"', text)
-                    if artist_match:
-                        result['artist'] = artist_match.group(1)
-                        
-                    album_match = re.search(r'"asal"\s*:\s*"([^"]+)"', text)
-                    if album_match:
-                        result['album'] = album_match.group(1)
-                    
+            image = Image.open(io.BytesIO(artwork_data))
+            # Save temporary file for ColorThief
+            temp_path = 'static/artwork/temp_cover.jpg'
+            image.save(temp_path)
+            color_thief = ColorThief(temp_path)
+            dominant_color = color_thief.get_color(quality=1)
+            # Convert RGB to hex
+            hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant_color)
+            return hex_color
         except Exception as e:
-            logger.error(f"Error parsing metadata: {e}")
+            logger.error(f"Error extracting dominant color: {e}")
+            return "#121212"  # Default dark background
+
+    def _metadata_reader_thread(self):
+        """Thread for continuous reading of the metadata pipe."""
+        logger.info("Starting metadata reader thread")
         
-        return result
+        while self.running:
+            try:
+                if not os.path.exists(self.pipe_path):
+                    logger.warning(f"Metadata pipe does not exist: {self.pipe_path}")
+                    time.sleep(5)
+                    continue
+                
+                # Open the pipe in non-blocking mode
+                if self.pipe_fd is None:
+                    try:
+                        # Try to import fcntl for non-blocking mode
+                        import fcntl
+                        self.pipe_fd = os.open(self.pipe_path, os.O_RDONLY)
+                        fcntl.fcntl(self.pipe_fd, fcntl.F_SETFL, os.O_NONBLOCK)
+                    except (ImportError, AttributeError):
+                        # Fallback if fcntl is not available or O_NONBLOCK is not defined
+                        self.pipe_fd = os.open(self.pipe_path, os.O_RDONLY)
+                    logger.info(f"Opened metadata pipe: {self.pipe_path}")
+                
+                # Use select to check if data is available
+                readable, _, _ = select.select([self.pipe_fd], [], [], 1.0)
+                if self.pipe_fd in readable:
+                    # Data is available to read
+                    data = os.read(self.pipe_fd, 4)  # Read header (4 bytes)
+                    if not data:
+                        # Pipe was closed, reopen it
+                        os.close(self.pipe_fd)
+                        self.pipe_fd = None
+                        continue
+                    
+                    # Parse the header
+                    if len(data) == 4:
+                        # Extract tag and length from header
+                        item_type, item_code, item_length = struct.unpack('>BBH', data)
+                        
+                        # Read the actual data
+                        item_data = b''
+                        while len(item_data) < item_length:
+                            chunk = os.read(self.pipe_fd, item_length - len(item_data))
+                            if not chunk:  # End of file or error
+                                break
+                            item_data += chunk
+                        
+                        # Process the data
+                        self._process_metadata_item(item_type, item_code, item_data)
+                else:
+                    # No data available
+                    time.sleep(0.1)
+                    
+            except Exception as e:
+                logger.error(f"Error in metadata reader thread: {e}")
+                # Close and reopen the pipe on error
+                if self.pipe_fd is not None:
+                    try:
+                        os.close(self.pipe_fd)
+                    except:
+                        pass
+                    self.pipe_fd = None
+                time.sleep(5)
+        
+        # Cleanup on thread exit
+        if self.pipe_fd is not None:
+            try:
+                os.close(self.pipe_fd)
+            except:
+                pass
+            self.pipe_fd = None
+
+    def _process_metadata_item(self, item_type, item_code, item_data):
+        """Process a single metadata item from the pipe."""
+        try:
+            # Convert code to 4-char string for easier comparison
+            code = struct.pack('>I', item_code).decode('utf-8', errors='ignore').strip('\0')
+            
+            # Update the last activity time
+            self.last_activity_time = time.time()
+            
+            with self.metadata_lock:
+                if code == CODE_ARTWORK:
+                    # Handle artwork (binary data)
+                    try:
+                        # Save the artwork to disk
+                        with open(self.artwork_path, 'wb') as f:
+                            f.write(item_data)
+                        
+                        # Set the artwork URL
+                        self.current_metadata['artwork'] = str(self.artwork_path).replace('\\', '/')
+                        
+                        # Extract the dominant color for background
+                        bg_color = self._extract_dominant_color(item_data)
+                        self.current_metadata['background_color'] = bg_color
+                        
+                        logger.info(f"Updated artwork and background color: {bg_color}")
+                    except Exception as e:
+                        logger.error(f"Error processing artwork: {e}")
+                        # Use default artwork on error
+                        self.current_metadata['artwork'] = self.artwork_default
+                
+                elif code == CODE_TITLE:
+                    # Handle track title (text data)
+                    title = item_data.decode('utf-8', errors='ignore')
+                    if title:
+                        self.current_metadata['title'] = title
+                        logger.info(f"Updated title: {title}")
+                
+                elif code == CODE_ARTIST:
+                    # Handle artist (text data)
+                    artist = item_data.decode('utf-8', errors='ignore')
+                    if artist:
+                        self.current_metadata['artist'] = artist
+                        logger.info(f"Updated artist: {artist}")
+                
+                elif code == CODE_ALBUM_NAME:
+                    # Handle album name (text data)
+                    album = item_data.decode('utf-8', errors='ignore')
+                    if album:
+                        self.current_metadata['album'] = album
+                        logger.info(f"Updated album: {album}")
+                
+                elif code == CODE_VOLUME:
+                    # Handle volume data
+                    if len(item_data) >= 4:
+                        # First byte is the denominator, rest is numerator
+                        denominator = item_data[0]
+                        numerator = int.from_bytes(item_data[1:4], byteorder='big')
+                        if denominator > 0:
+                            volume = (numerator * 100) // (denominator * 0x1000000)
+                            self.current_metadata['volume'] = volume
+                            logger.debug(f"Updated volume: {volume}%")
+                
+                elif code == CODE_PROGRESS:
+                    # Handle progress data
+                    if len(item_data) >= 16:
+                        start = int.from_bytes(item_data[0:4], byteorder='big')
+                        current = int.from_bytes(item_data[4:8], byteorder='big')
+                        end = int.from_bytes(item_data[8:12], byteorder='big')
+                        if end > 0:
+                            progress = (current - start) / (end - start)
+                            self.current_metadata['progress'] = progress
+                            logger.debug(f"Updated progress: {progress:.2f}")
+                
+        except Exception as e:
+            logger.error(f"Error processing metadata item: {e}")
 
     def get_current_metadata(self):
         """Get the current metadata with improved error handling and responsiveness."""
-        current_time = time.time()
-        
-        # Only check for new metadata periodically to avoid excessive file operations
-        if current_time - self.last_check_time >= self.check_interval:
-            self.last_check_time = current_time
+        with self.metadata_lock:
+            # Create a copy to avoid modification during return
+            metadata = self.current_metadata.copy()
             
-            try:
-                # Non-blocking check if pipe exists and has data
-                if os.path.exists(self.pipe_path):
-                    pipe_fd = os.open(self.pipe_path, os.O_RDONLY | os.O_NONBLOCK)
-                    try:
-                        data = os.read(pipe_fd, 16384)  # Read up to 16KB
-                        if data:
-                            new_metadata = self._parse_metadata(data)
-                            
-                            # Only update if we got meaningful data
-                            if new_metadata:
-                                if 'title' in new_metadata:
-                                    self.current_metadata['title'] = new_metadata['title']
-                                if 'artist' in new_metadata:
-                                    self.current_metadata['artist'] = new_metadata['artist']
-                                if 'album' in new_metadata:
-                                    self.current_metadata['album'] = new_metadata['album']
-                                if 'artwork' in new_metadata:
-                                    self.current_metadata['artwork'] = new_metadata['artwork']
-                                
-                                # If all fields are None except title, consider it not playing
-                                if (self.current_metadata['artist'] is None and 
-                                    self.current_metadata['album'] is None and
-                                    self.current_metadata['artwork'] is None):
-                                    logger.info("No complete metadata available, using default")
-                                    self.current_metadata['artwork'] = '/static/artwork/default_album.svg'
-                                    
-                                self.last_metadata = self.current_metadata.copy()
-                                
-                    except (OSError, IOError) as e:
-                        # No data available or error reading pipe
-                        pass
-                    finally:
-                        os.close(pipe_fd)
-                else:
-                    logger.debug(f"Metadata pipe {self.pipe_path} does not exist")
-                    
-            except Exception as e:
-                logger.error(f"Error getting metadata: {e}")
+            # Check if playback is active
+            if self.is_playing():
+                # Add default artwork if missing
+                if not metadata.get('artwork'):
+                    metadata['artwork'] = self.artwork_default
+                # Add background color if missing
+                if not metadata.get('background_color'):
+                    metadata['background_color'] = "#121212"
+            else:
+                # Default "not playing" metadata
+                metadata = {
+                    'title': "Not Playing",
+                    'artist': None,
+                    'album': None,
+                    'artwork': self.artwork_default,
+                    'background_color': "#121212",
+                    'volume': 0,
+                    'progress': None
+                }
         
-        return self.current_metadata
+        return metadata
 
     def is_playing(self):
         """Check if shairport-sync is actively streaming."""
-        # Method 1: Check process status
+        # Check if the shairport-sync process is running and activity is recent
         try:
-            # Check if the shairport-sync process is running
+            # Look for the shairport-sync process
             with os.popen('pgrep shairport-sync') as proc:
-                if proc.read().strip():
-                    # Method 2: Check if there's recent metadata
-                    if self.current_metadata.get('title') != "Not Playing":
-                        current_time = time.time()
-                        # Consider it playing if we've received metadata in the last 10 seconds
-                        if current_time - self.last_check_time < 10:
-                            return True
+                if not proc.read().strip():
+                    return False
+            
+            # Check for recent metadata activity
+            current_time = time.time()
+            if current_time - self.last_activity_time > 30:  # 30 seconds of inactivity
+                return False
+            
+            # Check if we have meaningful metadata
+            with self.metadata_lock:
+                if (self.current_metadata.get('title') == "Not Playing" or
+                    (self.current_metadata.get('artist') is None and 
+                     self.current_metadata.get('album') is None)):
+                    return False
+            
+            return True
+            
         except Exception as e:
             logger.error(f"Error checking playback status: {e}")
-            
-        return False
+            return False
