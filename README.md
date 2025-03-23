@@ -62,7 +62,7 @@ This will start both shairport-sync and the web interface temporarily.
 
 Open a browser on any device connected to the same network and navigate to:
 ```
-http://your-raspberry-pi-ip:8080
+http://your-raspberry-pi-ip:8000
 ```
 
 **Important:** Use HTTP, not HTTPS. Make sure to type `http://` at the beginning of the URL.
@@ -79,7 +79,7 @@ http://your-raspberry-pi-ip:8080
 
 For a dedicated display (like a small touchscreen on your Pi):
 ```bash
-chromium-browser --kiosk --app=http://localhost:8080
+chromium-browser --kiosk --app=http://localhost:8000
 ```
 
 ## Troubleshooting
@@ -93,7 +93,7 @@ Common issues:
 
 ## Notes
 
-* The web interface runs on port 8080 by default (shairport-sync uses port 5000)
+* The web interface runs on port 8000 by default (shairport-sync uses port 5000)
 * AirPlay device name is set to "Pi-AirPlay" by default
 * For improved security, consider changing the default port
 

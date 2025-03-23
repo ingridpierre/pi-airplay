@@ -67,13 +67,14 @@ else
     log_message "ERROR: Failed to start shairport-sync"
 fi
 
-# Start the web interface on port 8080
-log_message "Starting web interface on port 8080..."
-python3 app_airplay.py --port 8080 >> "$LOG_FILE" 2>&1 &
+# Start the web interface on port 8000
+log_message "Starting web interface on port 8000..."
+python3 app_airplay.py --port 8000 --host 0.0.0.0 >> "$LOG_FILE" 2>&1 &
 
 log_message "Port conflict resolved!"
 echo "-----------------------------------------"
 echo "Port conflict resolved!"
 echo "AirPlay service running on port 5000"
-echo "Web interface available at: http://$(hostname -I | awk '{print $1}'):8080"
+echo "Web interface available at: http://$(hostname -I | awk '{print $1}'):8000"
+echo "(Important: Use HTTP, not HTTPS in your browser)"
 echo "-----------------------------------------"

@@ -196,17 +196,18 @@ if __name__ == '__main__':
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Pi-AirPlay: Raspberry Pi AirPlay Receiver')
     parser.add_argument('--port', type=int, default=8080, help='Port to run the web server on (default: 8080)')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host address to bind to (default: 0.0.0.0)')
     args = parser.parse_args()
     
     try:
-        logger.info(f"Starting Pi-AirPlay on port {args.port}...")
+        logger.info(f"Starting Pi-AirPlay on {args.host}:{args.port}...")
         
         # Start the metadata update thread
         metadata_thread.start()
         
-        # Use 0.0.0.0 to ensure the server is accessible externally
+        # Use host from args (default 0.0.0.0) to ensure the server is accessible externally
         # Set debug=False to avoid common issues with Flask debugging
-        socketio.run(app, host='0.0.0.0', port=args.port, debug=False, 
+        socketio.run(app, host=args.host, port=args.port, debug=False, 
                     use_reloader=False, log_output=True)
                     
     except Exception as e:

@@ -91,14 +91,32 @@ Can't access the web interface.
 
 3. If needed, restart the web interface manually:
    ```bash
-   python3 app_airplay.py --port 8080
+   python3 app_airplay.py --port 8000 --host 0.0.0.0
    ```
 
 4. Important: Use HTTP, not HTTPS to access the web interface:
    ```
-   http://your-pi-ip:8080
+   http://your-pi-ip:8000
    ```
-   (Not https://your-pi-ip:8080)
+   (Not https://your-pi-ip:8000)
+
+5. If you get "Connection Refused" errors, check these potential issues:
+   - Firewall blocking port 8000 on your Pi:
+     ```bash
+     sudo iptables -L
+     # To allow port 8000:
+     sudo iptables -A INPUT -p tcp --dport 8000 -j ACCEPT
+     ```
+   - Network isolation - make sure your device and Pi are on the same network
+   - Test local connection on the Pi itself:
+     ```bash
+     curl http://localhost:8000
+     ```
+   - Try binding to all interfaces explicitly when starting the app:
+     ```bash
+     python3 app_airplay.py --port 8000 --host 0.0.0.0
+     ```
+   - Check for IP address changes (Pi might have a different IP than expected)
 
 ## Shairport-sync Issues
 

@@ -80,13 +80,13 @@ else
 fi
 
 # Start the web interface
-log_message "Starting web interface on port 8080..."
-python3 app_airplay.py --port 8080 >> "$LOG_FILE" 2>&1 &
+log_message "Starting web interface on port 8000..."
+python3 app_airplay.py --port 8000 --host 0.0.0.0 >> "$LOG_FILE" 2>&1 &
 
-log_message "Pi-AirPlay started! Web interface available at: http://$(hostname -I | awk '{print $1}'):8080"
+log_message "Pi-AirPlay started! Web interface available at: http://$(hostname -I | awk '{print $1}'):8000"
 echo "-----------------------------------------"
 echo "Pi-AirPlay is running!"
-echo "Access the web interface at: http://$(hostname -I | awk '{print $1}'):8080"
+echo "Access the web interface at: http://$(hostname -I | awk '{print $1}'):8000"
 echo "(Important: Use HTTP, not HTTPS in your browser)"
 echo "Stream music using AirPlay from your Apple device"
 echo "-----------------------------------------"
