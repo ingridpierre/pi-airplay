@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Path to the project directory
-PROJECT_DIR="/home/pi/music-display"
+PROJECT_DIR="/home/pi/Pi-DAD"
 
 # Activate virtual environment and run the application
 cd "$PROJECT_DIR"

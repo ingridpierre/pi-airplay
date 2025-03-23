@@ -121,8 +121,8 @@ The music recognition feature requires an AcoustID API key:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/music-display.git
-cd music-display
+git clone https://github.com/yourusername/Pi-DAD.git
+cd Pi-DAD
 
 # Create required directories if they don't exist
 mkdir -p static/artwork
@@ -150,16 +150,16 @@ If you want to view the logs at any time:
 
 ```bash
 # View logs from the service
-sudo journalctl -u music-display -f
+sudo journalctl -u pi-dad -f
 ```
 
-**Note:** If you prefer manual setup, the service file is available at `config/music-display.service`. You can edit it as needed and install it with:
+**Note:** If you prefer manual setup, the service file is available at `config/pi-dad.service`. You can edit it as needed and install it with:
 
 ```bash
-sudo cp config/music-display.service /etc/systemd/system/
+sudo cp config/pi-dad.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable music-display
-sudo systemctl start music-display
+sudo systemctl enable pi-dad
+sudo systemctl start pi-dad
 ```
 
 ### 8. Configure Chromium to Start in Kiosk Mode
@@ -172,7 +172,7 @@ mkdir -p ~/.config/autostart
 cat > ~/.config/autostart/chromium.desktop << EOF
 [Desktop Entry]
 Type=Application
-Name=Music Display Kiosk
+Name=Pi-DAD AirPlay Display
 Exec=chromium-browser --kiosk --disable-restore-session-state http://localhost:5000
 EOF
 ```
@@ -244,10 +244,10 @@ fpcalc test.wav
 
 ```bash
 # Check web interface status
-sudo systemctl status music-display
+sudo systemctl status pi-dad
 
 # View web interface logs
-sudo journalctl -u music-display -n 50
+sudo journalctl -u pi-dad -n 50
 
 # Verify the web server is running
 curl http://localhost:5000

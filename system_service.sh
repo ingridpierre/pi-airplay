@@ -11,9 +11,9 @@ else
 fi
 
 # Create the service file
-SERVICE_FILE="music-display.service"
+SERVICE_FILE="pi-dad.service"
 echo "[Unit]
-Description=Music Display with AirPlay and Recognition
+Description=Pi-DAD AirPlay Receiver with Music Recognition
 After=network.target
 
 [Service]
@@ -33,7 +33,7 @@ fi
 echo "Restart=always
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=music-display
+SyslogIdentifier=pi-dad
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
@@ -49,11 +49,11 @@ sudo systemctl daemon-reload
 
 # Enable and start the service
 echo "Enabling and starting the service..."
-sudo systemctl enable music-display
-sudo systemctl start music-display
+sudo systemctl enable pi-dad
+sudo systemctl start pi-dad
 
 # Show status
 echo "Service status:"
-sudo systemctl status music-display
+sudo systemctl status pi-dad
 
-echo "Setup complete! You can check logs with: sudo journalctl -u music-display -f"
+echo "Setup complete! You can check logs with: sudo journalctl -u pi-dad -f"
