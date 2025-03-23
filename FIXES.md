@@ -2,6 +2,18 @@
 
 This document contains common issues and their solutions for the Pi-AirPlay system.
 
+## Recent Improvements
+
+The following improvements have been made to address common issues:
+
+1. **Enhanced Metadata Handling**: The system now uses a more robust approach to extract metadata from shairport-sync, with better error handling and non-blocking reads.
+
+2. **Reduced Update Latency**: Metadata updates now refresh every 1 second instead of 5 seconds for more responsive UI updates.
+
+3. **Background Color Adaptation**: The web interface now extracts dominant colors from album art to create a cohesive visual experience.
+
+4. **Improved Process Detection**: Better distinction between shairport-sync running vs. active playback status.
+
 ## Port Conflicts
 
 ### Problem
@@ -55,6 +67,12 @@ rm -f /tmp/shairport-sync-metadata
 mkfifo /tmp/shairport-sync-metadata
 chmod 666 /tmp/shairport-sync-metadata
 ```
+
+The updated code now includes improved error handling for metadata pipe access:
+- Non-blocking reads from the pipe
+- Automatic handling for different platforms (with/without fcntl)
+- Improved pipe creation and permission management
+- Proper cleanup when pipe access fails
 
 ## Startup Issues
 

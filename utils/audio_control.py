@@ -1,5 +1,6 @@
 """
 Improved audio control module for shairport-sync metadata - based on shairport-decoder.
+This version adds enhanced debugging, raw data access, and improved metadata parsing.
 """
 
 import os
@@ -13,6 +14,7 @@ import threading
 import struct
 import json
 from pathlib import Path
+from datetime import datetime
 from PIL import Image, ImageDraw
 from colorthief import ColorThief
 
@@ -31,6 +33,18 @@ CODE_PROGRESS = 'prgr'
 CODE_DACP_ID = 'daid'
 CODE_ACTIVE_REMOTE = 'acre'
 CODE_CLIENT_IP = 'clip'
+
+# Item types from shairport-sync
+ITEM_TYPE_METADATA = 1       # Core
+ITEM_TYPE_PLAYBACK_STATUS = 2  # Play status and track info
+ITEM_TYPE_ARTWORK = 3          # Album artwork
+
+# Debug codes - needed to match with app.py
+DEBUG_CODE_READ_ATTEMPT = 'read_attempts'
+DEBUG_CODE_READ_SUCCESS = 'successful_reads'
+DEBUG_CODE_PARSE_ERROR = 'parse_errors'
+DEBUG_CODE_PROCESS_ERROR = 'process_errors'
+DEBUG_CODE_METADATA_UPDATE = 'metadata_updates'
 
 class AudioController:
     def __init__(self, pipe_path='/tmp/shairport-sync-metadata'):
@@ -56,6 +70,18 @@ class AudioController:
         self.last_activity_time = 0
         self.artwork_path = Path('static/artwork/current_album.jpg')
         self.artwork_default = '/static/artwork/default_album.svg'
+        
+        # Debug tracking
+        self.last_pipe_read_time = None
+        self.last_pipe_data_time = None
+        self.debug_counters = {
+            DEBUG_CODE_READ_ATTEMPT: 0,
+            DEBUG_CODE_READ_SUCCESS: 0,
+            DEBUG_CODE_PARSE_ERROR: 0,
+            DEBUG_CODE_PROCESS_ERROR: 0,
+            DEBUG_CODE_METADATA_UPDATE: 0
+        }
+        self.last_error = None
         
         # Ensure the artwork directory exists
         os.makedirs(os.path.dirname(self.artwork_path), exist_ok=True)
@@ -105,14 +131,79 @@ class AudioController:
             logger.error(f"Error extracting dominant color: {e}")
             return "#121212"  # Default dark background
 
+    def read_raw_pipe_data(self, max_chunks=5):
+        """
+        Read raw data from the pipe for debugging purposes.
+        Returns a list of binary chunks or None if no data is available.
+        """
+        result = []
+        
+        try:
+            # Check if pipe exists
+            if not os.path.exists(self.pipe_path):
+                return None
+                
+            # Create a new file descriptor just for this read
+            try:
+                # Try non-blocking mode with fcntl
+                import fcntl
+                temp_fd = os.open(self.pipe_path, os.O_RDONLY)
+                fcntl.fcntl(temp_fd, fcntl.F_SETFL, os.O_NONBLOCK)
+            except (ImportError, AttributeError):
+                # Fallback to blocking mode
+                temp_fd = os.open(self.pipe_path, os.O_RDONLY)
+            
+            # Try to read some data with timeout using select
+            readable, _, _ = select.select([temp_fd], [], [], 0.5)
+            if temp_fd in readable:
+                # Read up to max_chunks
+                for i in range(max_chunks):
+                    try:
+                        # Read a small chunk
+                        chunk = os.read(temp_fd, 128)
+                        if not chunk:
+                            break
+                        result.append(chunk)
+                    except:
+                        break
+            
+            # Close the temporary file descriptor
+            os.close(temp_fd)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error reading raw pipe data: {e}")
+            return None
+
     def _metadata_reader_thread(self):
         """Thread for continuous reading of the metadata pipe."""
         logger.info("Starting metadata reader thread")
         
         while self.running:
             try:
+                # Increment attempt counter and update timestamp
+                self.debug_counters[DEBUG_CODE_READ_ATTEMPT] += 1
+                self.last_pipe_read_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
                 if not os.path.exists(self.pipe_path):
                     logger.warning(f"Metadata pipe does not exist: {self.pipe_path}")
+                    self.last_error = f"Metadata pipe does not exist: {self.pipe_path}"
+                    time.sleep(5)
+                    continue
+                
+                # Check if it's a proper FIFO using stat module
+                try:
+                    import stat as stat_module
+                    st = os.stat(self.pipe_path)
+                    if not stat_module.S_ISFIFO(st.st_mode):
+                        logger.warning(f"Metadata path exists but is not a FIFO pipe: {self.pipe_path}")
+                        self.last_error = f"Metadata path exists but is not a FIFO pipe: {self.pipe_path}"
+                        time.sleep(5)
+                        continue
+                except Exception as e:
+                    logger.warning(f"Error checking if path is FIFO: {e}")
+                    self.last_error = f"Error checking if path is FIFO: {e}"
                     time.sleep(5)
                     continue
                 
@@ -123,43 +214,83 @@ class AudioController:
                         import fcntl
                         self.pipe_fd = os.open(self.pipe_path, os.O_RDONLY)
                         fcntl.fcntl(self.pipe_fd, fcntl.F_SETFL, os.O_NONBLOCK)
+                        logger.info(f"Opened metadata pipe with non-blocking mode: {self.pipe_path}")
                     except (ImportError, AttributeError):
                         # Fallback if fcntl is not available or O_NONBLOCK is not defined
                         self.pipe_fd = os.open(self.pipe_path, os.O_RDONLY)
-                    logger.info(f"Opened metadata pipe: {self.pipe_path}")
-                
-                # Use select to check if data is available
-                readable, _, _ = select.select([self.pipe_fd], [], [], 1.0)
-                if self.pipe_fd in readable:
-                    # Data is available to read
-                    data = os.read(self.pipe_fd, 4)  # Read header (4 bytes)
-                    if not data:
-                        # Pipe was closed, reopen it
-                        os.close(self.pipe_fd)
-                        self.pipe_fd = None
-                        continue
+                        logger.info(f"Opened metadata pipe with blocking mode: {self.pipe_path}")
                     
-                    # Parse the header
-                    if len(data) == 4:
-                        # Extract tag and length from header
-                        item_type, item_code, item_length = struct.unpack('>BBH', data)
+                    logger.info(f"Pipe FD: {self.pipe_fd}, Path: {self.pipe_path}")
+                
+                # Use select to check if data is available with a timeout
+                try:
+                    readable, _, _ = select.select([self.pipe_fd], [], [], 1.0)
+                    if self.pipe_fd in readable:
+                        # Data is available to read
+                        data = os.read(self.pipe_fd, 4)  # Read header (4 bytes)
+                        if not data or len(data) == 0:
+                            # Pipe was closed or empty read, reopen it
+                            logger.warning("Empty read from pipe, reopening")
+                            self.last_error = "Empty read from pipe, reopening"
+                            os.close(self.pipe_fd)
+                            self.pipe_fd = None
+                            time.sleep(1)
+                            continue
                         
-                        # Read the actual data
-                        item_data = b''
-                        while len(item_data) < item_length:
-                            chunk = os.read(self.pipe_fd, item_length - len(item_data))
-                            if not chunk:  # End of file or error
-                                break
-                            item_data += chunk
+                        # We got data - update the success counter and timestamp
+                        self.debug_counters[DEBUG_CODE_READ_SUCCESS] += 1
+                        self.last_pipe_data_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         
-                        # Process the data
-                        self._process_metadata_item(item_type, item_code, item_data)
-                else:
-                    # No data available
-                    time.sleep(0.1)
+                        # Parse the header
+                        if len(data) == 4:
+                            try:
+                                # Extract tag and length from header
+                                item_type, item_code, item_length = struct.unpack('>BBH', data)
+                                
+                                # Read the actual data
+                                item_data = b''
+                                while len(item_data) < item_length:
+                                    chunk = os.read(self.pipe_fd, item_length - len(item_data))
+                                    if not chunk:  # End of file or error
+                                        break
+                                    item_data += chunk
+                                
+                                # Process the data
+                                if len(item_data) == item_length:
+                                    # Success - process the data
+                                    self._process_metadata_item(item_type, item_code, item_data)
+                                    # Increment metadata update counter
+                                    self.debug_counters[DEBUG_CODE_METADATA_UPDATE] += 1
+                                else:
+                                    # Incomplete data
+                                    logger.warning(f"Incomplete data: expected {item_length} bytes, got {len(item_data)}")
+                                    self.debug_counters[DEBUG_CODE_PARSE_ERROR] += 1
+                                    self.last_error = f"Incomplete data: expected {item_length} bytes, got {len(item_data)}"
+                            except Exception as e:
+                                # Error parsing header or data
+                                logger.error(f"Error parsing metadata: {e}")
+                                self.debug_counters[DEBUG_CODE_PARSE_ERROR] += 1
+                                self.last_error = f"Error parsing metadata: {e}"
+                    else:
+                        # No data available
+                        time.sleep(0.1)
+                except Exception as e:
+                    logger.error(f"Error in select/read operation: {e}")
+                    self.last_error = f"Error in select/read operation: {e}"
+                    # Close and reopen pipe
+                    if self.pipe_fd is not None:
+                        try:
+                            os.close(self.pipe_fd)
+                        except:
+                            pass
+                        self.pipe_fd = None
+                    time.sleep(1)
                     
             except Exception as e:
                 logger.error(f"Error in metadata reader thread: {e}")
+                self.last_error = f"Error in metadata reader thread: {e}"
+                self.debug_counters[DEBUG_CODE_PROCESS_ERROR] += 1
+                
                 # Close and reopen the pipe on error
                 if self.pipe_fd is not None:
                     try:

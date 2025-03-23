@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi-AirPlay Debug</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #0066cc;
+        }
+        .section {
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 15px;
+        }
+        .data-row {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            padding: 5px 0;
+        }
+        .label {
+            font-weight: bold;
+            width: 200px;
+        }
+        .value {
+            flex: 1;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        pre {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .error {
+            color: #cc0000;
+            font-weight: bold;
+        }
+        .success {
+            color: #00aa00;
+        }
+        .actions {
+            margin: 20px 0;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0055aa;
+        }
+        .counter {
+            display: inline-block;
+            background: #eee;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffeeba;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        #rawPipeData {
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pi-AirPlay Debug Interface</h1>
+    
+    <div class="actions">
+        <a href="/"><button>Back to Player</button></a>
+        <button id="refreshBtn">Refresh Data</button>
+        <button id="showRawDataBtn">Show Raw Pipe Data</button>
+    </div>
+    
+    <div class="section">
+        <h2>Current Status</h2>
+        <div class="data-row">
+            <div class="label">AirPlay Active:</div>
+            <div class="value {% if metadata_state.airplay_active %}success{% else %}warning{% endif %}">
+                {{ "Yes" if metadata_state.airplay_active else "No" }}
+            </div>
+        </div>
+        <div class="data-row">
+            <div class="label">Shairport-sync Running:</div>
+            <div class="value {% if shairport_info.running %}success{% else %}error{% endif %}">
+                {{ "Yes" if shairport_info.running else "No" }}
+            </div>
+        </div>
+        <div class="data-row">
+            <div class="label">Metadata Pipe:</div>
+            <div class="value {% if pipe_info.exists %}success{% else %}error{% endif %}">
+                {{ "Exists" if pipe_info.exists else "Missing" }} 
+                {% if pipe_info.exists %}
+                    ({{ pipe_info.permissions }} - {{ pipe_info.owner }} - {{ pipe_info.type }})
+                {% endif %}
+            </div>
+        </div>
+        <div class="data-row">
+            <div class="label">Last Error:</div>
+            <div class="value {% if last_error != 'No errors reported' %}error{% endif %}">
+                {{ last_error }}
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Debug Counters</h2>
+        <div class="counter">Read Attempts: {{ debug_counters.read_attempts }}</div>
+        <div class="counter">Successful Reads: {{ debug_counters.successful_reads }}</div>
+        <div class="counter">Parse Errors: {{ debug_counters.parse_errors }}</div>
+        <div class="counter">Process Errors: {{ debug_counters.process_errors }}</div>
+        <div class="counter">Metadata Updates: {{ debug_counters.metadata_updates }}</div>
+        
+        <div class="data-row">
+            <div class="label">Last Read Attempt:</div>
+            <div class="value">{{ pipe_info.last_read_attempt or 'None' }}</div>
+        </div>
+        <div class="data-row">
+            <div class="label">Last Data Received:</div>
+            <div class="value">{{ pipe_info.last_read_success or 'None' }}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Current Metadata</h2>
+        <pre>{{ metadata_state | tojson(indent=2) }}</pre>
+    </div>
+    
+    <div id="rawPipeData" class="section">
+        <h2>Raw Pipe Data</h2>
+        <p>Attempting to read raw data from shairport-sync metadata pipe...</p>
+        <div id="rawPipeResult">Loading...</div>
+    </div>
+
+    <div class="section">
+        <h2>Shairport-sync Information</h2>
+        <div class="data-row">
+            <div class="label">Installed:</div>
+            <div class="value {% if shairport_info.installed %}success{% else %}error{% endif %}">
+                {{ "Yes" if shairport_info.installed else "No" }}
+            </div>
+        </div>
+        <div class="data-row">
+            <div class="label">Version:</div>
+            <div class="value">{{ shairport_info.version }}</div>
+        </div>
+        <div class="data-row">
+            <div class="label">Process Info:</div>
+            <div class="value">
+                <pre>{{ shairport_info.processes }}</pre>
+            </div>
+        </div>
+        <div class="data-row">
+            <div class="label">Config File:</div>
+            <div class="value {% if shairport_info.config_exists %}success{% else %}warning{% endif %}">
+                {{ "Exists" if shairport_info.config_exists else "Not Found" }}
+            </div>
+        </div>
+        {% if shairport_info.config_exists %}
+        <div class="data-row">
+            <div class="label">Config Sample:</div>
+            <div class="value">
+                <pre>{{ shairport_info.config_sample }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>System Information</h2>
+        <div class="data-row">
+            <div class="label">Hostname:</div>
+            <div class="value">{{ system_info.hostname }}</div>
+        </div>
+        <div class="data-row">
+            <div class="label">Date/Time:</div>
+            <div class="value">{{ system_info.date }}</div>
+        </div>
+        <div class="data-row">
+            <div class="label">Uptime:</div>
+            <div class="value">{{ system_info.uptime }}</div>
+        </div>
+        <div class="data-row">
+            <div class="label">OS Info:</div>
+            <div class="value">
+                <pre>{{ system_info.os_info }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Audio Devices</h2>
+        <pre>{{ audio_info.devices }}</pre>
+        <h3>ALSA Cards</h3>
+        <pre>{{ audio_info.cards }}</pre>
+    </div>
+
+    <div class="section">
+        <h2>Network Information</h2>
+        <div class="data-row">
+            <div class="label">AirPlay Port (5000):</div>
+            <div class="value">
+                {% if "5000" in network_info.airplay_port %}
+                    <span class="warning">In use - may conflict with shairport-sync</span>
+                {% else %}
+                    <span class="success">Available</span>
+                {% endif %}
+            </div>
+        </div>
+        <h3>Network Interfaces</h3>
+        <pre>{{ network_info.interfaces }}</pre>
+        <h3>Listening Ports</h3>
+        <pre>{{ network_info.listening_ports }}</pre>
+    </div>
+
+    <script>
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        document.getElementById('showRawDataBtn').addEventListener('click', function() {
+            const dataSection = document.getElementById('rawPipeData');
+            const resultDiv = document.getElementById('rawPipeResult');
+            dataSection.style.display = 'block';
+            
+            fetch('/raw-pipe-data')
+                .then(response => response.json())
+                .then(data => {
+                    let html = '';
+                    
+                    if (data.error) {
+                        html = `<div class="error">Error: ${data.error}</div>`;
+                    } else if (data.message) {
+                        html = `<div class="warning">${data.message}</div>`;
+                    } else if (data.raw_chunks && data.raw_chunks.length > 0) {
+                        html = '<h3>Timestamp: ' + data.timestamp + '</h3>';
+                        html += '<table style="width:100%; border-collapse: collapse;">';
+                        html += '<tr><th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">Hex</th>';
+                        html += '<th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">ASCII</th></tr>';
+                        
+                        data.raw_chunks.forEach(chunk => {
+                            html += `<tr>
+                                <td style="border-bottom:1px solid #eee; padding:8px; font-family:monospace;">${chunk.hex}</td>
+                                <td style="border-bottom:1px solid #eee; padding:8px; font-family:monospace;">${chunk.ascii}</td>
+                            </tr>`;
+                        });
+                        
+                        html += '</table>';
+                    } else {
+                        html = '<div class="warning">No data available from pipe</div>';
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<div class="error">Failed to fetch data: ${error}</div>`;
+                });
+        });
+    </script>
+</body>
+</html>
