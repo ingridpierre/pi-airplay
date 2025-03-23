@@ -26,11 +26,23 @@ A Raspberry Pi-powered AirPlay receiver that transforms music streaming into an 
 git clone https://github.com/yourusername/pi-dad.git
 cd pi-dad
 
+# Make the installation script executable
+chmod +x install_pi_dad.sh
+
 # Run the installation script
 sudo ./install_pi_dad.sh
 ```
 
-During installation, you'll be prompted to enter your AcoustID API key. This is required for the music recognition feature to work properly.
+During installation:
+1. You'll be asked to choose between system-wide or virtual environment installation
+2. You'll be prompted to enter your AcoustID API key (optional, but required for music recognition)
+
+The script handles:
+- Installing all required system dependencies
+- Setting up a Python virtual environment (to avoid "externally-managed-environment" errors)
+- Configuring shairport-sync
+- Creating and enabling the systemd service
+- Setting up the application to start automatically at boot
 
 ### Manual Installation
 
@@ -39,29 +51,66 @@ If you prefer to install components manually:
 1. Install required system packages:
    ```bash
    sudo apt-get update
-   sudo apt-get install -y python3 python3-pip ffmpeg libasound2-dev portaudio19-dev shairport-sync
+   sudo apt-get install -y python3 python3-pip python3-venv ffmpeg libasound2-dev portaudio19-dev shairport-sync
    ```
 
-2. Install Python dependencies:
+2. Create a directory for the application and copy files:
    ```bash
-   pip3 install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs
+   sudo mkdir -p /opt/pi-dad
+   sudo cp -r app.py utils static templates /opt/pi-dad/
+   sudo chown -R pi:pi /opt/pi-dad
    ```
 
-3. Configure shairport-sync:
+3. Create a virtual environment and install dependencies:
+   ```bash
+   sudo python3 -m venv /opt/pi-dad-venv
+   sudo /opt/pi-dad-venv/bin/pip install flask flask-socketio pyaudio requests pyacoustid colorthief musicbrainzngs pillow
+   ```
+
+4. Configure shairport-sync:
    ```bash
    sudo cp config/shairport-sync.conf /etc/shairport-sync.conf
+   sudo systemctl restart shairport-sync
    ```
 
-4. Install systemd service:
+5. Create metadata pipe:
    ```bash
-   sudo cp config/pi-dad.service.system /etc/systemd/system/pi-dad.service
+   sudo mkfifo /tmp/shairport-sync-metadata
+   sudo chmod 666 /tmp/shairport-sync-metadata
+   ```
+
+6. Create systemd service:
+   ```bash
+   sudo bash -c 'cat > /etc/systemd/system/pi-dad.service << EOL
+   [Unit]
+   Description=Pi-DAD - Raspberry Pi Digital Audio Display
+   After=network.target shairport-sync.service
+
+   [Service]
+   ExecStart=/opt/pi-dad-venv/bin/python /opt/pi-dad/app.py
+   WorkingDirectory=/opt/pi-dad
+   Restart=always
+   RestartSec=5
+   User=pi
+   Group=pi
+   Environment=PYTHONUNBUFFERED=1
+
+   [Install]
+   WantedBy=multi-user.target
+   EOL'
+   ```
+
+7. Enable and start the service:
+   ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable pi-dad.service
+   sudo systemctl start pi-dad.service
    ```
 
-5. Set up your AcoustID API key:
+8. Set up your AcoustID API key (optional):
    ```bash
-   echo "YOUR_API_KEY" > .acoustid_api_key
+   sudo bash -c 'echo "YOUR_API_KEY" > /etc/acoustid_api_key'
+   sudo chmod 644 /etc/acoustid_api_key
    ```
 
 ## Usage
@@ -110,15 +159,27 @@ http://[your-pi-ip-address]:5000/setup
 
 ## Troubleshooting
 
+- **"externally-managed-environment" Error**: If you see this error during installation, it means your Python installation is managed by the system package manager. Our installation script handles this by using virtual environments.
+
 - **Metadata Pipe Issues**: If you encounter problems with AirPlay metadata, check that the metadata pipe exists with the correct permissions:
   ```bash
   sudo mkfifo /tmp/shairport-sync-metadata
   sudo chmod 666 /tmp/shairport-sync-metadata
   ```
 
-- **No Sound**: Ensure your audio device is properly configured in Raspberry Pi OS.
+- **No Sound**: Ensure your audio device is properly configured in Raspberry Pi OS. You may need to set your audio output device using `raspi-config`.
 
-- **Music Recognition Not Working**: Check that your microphone is properly connected and recognized by the system.
+- **Music Recognition Not Working**: Make sure you've set up your AcoustID API key (via the installation script or the web interface at `/setup`). Also check that your microphone is properly connected and recognized by the system:
+  ```bash
+  # List audio input devices
+  arecord -l
+  ```
+
+- **Service Won't Start**: Check the service status and logs with:
+  ```bash
+  sudo systemctl status pi-dad
+  sudo journalctl -u pi-dad -f
+  ```
 
 ## License
 
