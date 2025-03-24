@@ -1,69 +1,153 @@
 
 #!/bin/bash
-# Pi-AirPlay Diagnostic Information Collection Script
-# This script collects comprehensive diagnostic information to help troubleshoot issues
 
-LOG_FILE="pi_airplay_diagnostics.log"
-echo "Pi-AirPlay Diagnostic Collection - $(date)" > $LOG_FILE
+# Pi-AirPlay diagnostic script
+# This script collects detailed diagnostics about your Pi-AirPlay setup
 
-# Function to run a command and log output
-run_and_log() {
-  echo "=== $1 ===" >> $LOG_FILE
-  echo "$ $2" >> $LOG_FILE
-  eval "$2" >> $LOG_FILE 2>&1
-  echo -e "\n" >> $LOG_FILE
+# Colors for better visibility
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+LOG_FILE="pi_airplay_diagnostics_$(date +%Y%m%d_%H%M%S).log"
+
+# Function to log information
+log() {
+    echo -e "$1" | tee -a "$LOG_FILE"
 }
 
-echo "Collecting diagnostic information. This may take a moment..."
+log "===== Pi-AirPlay Diagnostic Collection ====="
+log "Date: $(date)"
+log "Hostname: $(hostname)"
+log "IP Addresses: $(hostname -I)"
+log ""
 
 # System information
-run_and_log "System Information" "uname -a"
-run_and_log "Operating System" "cat /etc/os-release"
-run_and_log "Hostname" "hostname"
-run_and_log "IP Addresses" "hostname -I"
-run_and_log "Uptime" "uptime"
+log "===== System Information ====="
+log "OS Version:"
+cat /etc/os-release | tee -a "$LOG_FILE"
+log ""
+log "Kernel Version: $(uname -a)"
+log ""
+log "Memory Usage:"
+free -h | tee -a "$LOG_FILE"
+log ""
+log "Disk Usage:"
+df -h | tee -a "$LOG_FILE"
+log ""
 
-# System resources
-run_and_log "CPU Info" "cat /proc/cpuinfo"
-run_and_log "Memory Usage" "free -h"
-run_and_log "Disk Space" "df -h"
-run_and_log "Running Processes" "ps aux | grep -E 'python|shairport|flask'"
+# Network information
+log "===== Network Information ====="
+log "Network Interfaces:"
+ip addr | tee -a "$LOG_FILE"
+log ""
+log "Listening Ports:"
+if command -v netstat > /dev/null; then
+    netstat -tuln | tee -a "$LOG_FILE"
+elif command -v ss > /dev/null; then
+    ss -tuln | tee -a "$LOG_FILE"
+else
+    log "No network port tool found (netstat or ss)"
+fi
+log ""
+log "Route Table:"
+ip route | tee -a "$LOG_FILE"
+log ""
+log "Firewall Status:"
+if command -v ufw > /dev/null; then
+    ufw status | tee -a "$LOG_FILE"
+elif command -v iptables > /dev/null; then
+    iptables -L -n | tee -a "$LOG_FILE"
+else
+    log "No firewall tool found"
+fi
+log ""
 
-# Audio configuration
-run_and_log "Audio Devices" "aplay -l"
-run_and_log "PulseAudio Status" "command -v pulseaudio && pulseaudio --check"
-run_and_log "ALSA Cards" "cat /proc/asound/cards"
+# Audio information
+log "===== Audio Information ====="
+log "ALSA Devices:"
+if command -v aplay > /dev/null; then
+    aplay -l | tee -a "$LOG_FILE"
+    log ""
+    aplay -L | tee -a "$LOG_FILE"
+else
+    log "aplay not found"
+fi
+log ""
+log "Audio Cards:"
+cat /proc/asound/cards 2>/dev/null | tee -a "$LOG_FILE" || log "No audio cards info available"
+log ""
+log "ALSA Config:"
+if [ -f "/etc/asound.conf" ]; then
+    cat /etc/asound.conf | tee -a "$LOG_FILE"
+elif [ -f "~/.asoundrc" ]; then
+    cat ~/.asoundrc | tee -a "$LOG_FILE"
+else
+    log "No ALSA config found"
+fi
+log ""
 
-# Network
-run_and_log "Network Interfaces" "ip addr show"
-run_and_log "Network Routes" "ip route"
-run_and_log "Listening Ports" "ss -tuln || netstat -tuln"
-run_and_log "Port 8000 Usage" "ss -tuln | grep 8000 || netstat -tuln | grep 8000"
+# Shairport-sync information
+log "===== Shairport-Sync Information ====="
+log "Shairport-Sync Installed:"
+if command -v shairport-sync > /dev/null; then
+    log "Yes - $(shairport-sync -V 2>&1)"
+else
+    log "No"
+fi
+log ""
+log "Shairport-Sync Running:"
+ps aux | grep shairport-sync | grep -v grep | tee -a "$LOG_FILE" || log "Not running"
+log ""
+log "Shairport-Sync Config:"
+if [ -f "/usr/local/etc/shairport-sync.conf" ]; then
+    cat /usr/local/etc/shairport-sync.conf | tee -a "$LOG_FILE"
+elif [ -f "/etc/shairport-sync.conf" ]; then
+    cat /etc/shairport-sync.conf | tee -a "$LOG_FILE"
+else
+    log "No shairport-sync config found"
+fi
+log ""
+log "Metadata Pipe:"
+if [ -p "/tmp/shairport-sync-metadata" ]; then
+    ls -la /tmp/shairport-sync-metadata | tee -a "$LOG_FILE"
+    log "Pipe exists and permissions are correct"
+else
+    log "Metadata pipe does not exist"
+fi
+log ""
 
-# Check services
-run_and_log "Shairport-sync Service Status" "command -v systemctl && systemctl status shairport-sync.service"
-run_and_log "Pi-AirPlay Service Status" "command -v systemctl && systemctl status pi-airplay.service"
+# Pi-AirPlay service
+log "===== Pi-AirPlay Service Information ====="
+log "Service Status:"
+systemctl status pi-airplay.service 2>&1 | tee -a "$LOG_FILE" || log "Service not found or systemctl not available"
+log ""
+log "Service Log:"
+journalctl -u pi-airplay.service -n 100 --no-pager 2>&1 | tee -a "$LOG_FILE" || log "Cannot access logs"
+log ""
 
-# Check Pi-AirPlay files
-run_and_log "Pi-AirPlay Files" "ls -la"
-run_and_log "Template Files" "ls -la templates/"
-run_and_log "Static Files" "ls -la static/"
+# Web server test
+log "===== Web Server Tests ====="
+PI_IP=$(hostname -I | awk '{print $1}')
+log "Testing localhost:8000:"
+curl -s -I http://localhost:8000/ 2>&1 | tee -a "$LOG_FILE" || log "Failed to connect to localhost:8000"
+log ""
+log "Testing ${PI_IP}:8000:"
+curl -s -I http://${PI_IP}:8000/ 2>&1 | tee -a "$LOG_FILE" || log "Failed to connect to ${PI_IP}:8000"
+log ""
 
-# Check if app is running
-run_and_log "Python Processes" "ps aux | grep python"
-run_and_log "Shairport Processes" "ps aux | grep shairport"
+# Check Python environment
+log "===== Python Environment ====="
+log "Python Version:"
+python3 --version 2>&1 | tee -a "$LOG_FILE" || log "Python3 not found"
+log ""
+log "Flask and Dependencies:"
+pip3 list | grep -E "flask|socket|audio" 2>&1 | tee -a "$LOG_FILE" || log "pip3 not found or no dependencies listed"
+log ""
 
-# Test connectivity
-run_and_log "Curl localhost:8000" "curl -v --max-time 5 http://localhost:8000/ 2>&1"
-IP=$(hostname -I | awk '{print $1}')
-run_and_log "Curl IP:8000" "curl -v --max-time 5 http://${IP}:8000/ 2>&1"
-
-# Test metadata pipe
-run_and_log "Metadata Pipe Check" "ls -la /tmp/shairport-sync-metadata"
-
-# Collect journal logs if available
-run_and_log "Pi-AirPlay Service Logs" "command -v journalctl && journalctl -u pi-airplay.service -n 50"
-run_and_log "Shairport-sync Service Logs" "command -v journalctl && journalctl -u shairport-sync.service -n 50"
-
-echo "Diagnostic information collected in $LOG_FILE"
-echo "Please share this file to help troubleshoot your issue."
+log "===== Diagnostic Collection Complete ====="
+log "Diagnostics saved to: $LOG_FILE"
+echo -e "${GREEN}Diagnostics collection complete!${NC}"
+echo -e "Log file: ${GREEN}$LOG_FILE${NC}"
+echo "Please share this log file to get help with troubleshooting."

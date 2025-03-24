@@ -1,156 +1,149 @@
 
 #!/bin/bash
-# Pi-AirPlay Web Interface Troubleshooter
-# Enhanced version for detailed diagnostics
+
+# Colors for better visibility
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
 echo "===== Pi-AirPlay Web Interface Troubleshooter ====="
 
-# Use colorful output for better readability
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-echo -e "${BLUE}=== Basic Configuration Checks ===${NC}"
-
-# Check if static files exist
-if [ ! -d "static" ]; then
-  echo -e "${RED}ERROR: 'static' directory missing!${NC}"
-else
-  echo -e "${GREEN}✓ Static directory exists${NC}"
-fi
-
-# Check templates
-if [ ! -d "templates" ]; then
-  echo -e "${RED}ERROR: 'templates' directory missing!${NC}"
-else
-  echo -e "${GREEN}✓ Templates directory exists${NC}"
-  
-  # Check for critical templates
-  for template in display.html debug.html; do
-    if [ ! -f "templates/$template" ]; then
-      echo -e "${RED}ERROR: Missing template: $template${NC}"
-    else
-      echo -e "${GREEN}✓ Template exists: $template${NC}"
-    fi
-  done
-fi
-
-# Check routes in main application
-grep -n "route.*debug" app_airplay.py
-echo -e "${GREEN}✓ Checked routes configuration${NC}"
-
-echo -e "${BLUE}=== System Status Checks ===${NC}"
-
-# Check system resources
-echo "Memory usage:"
-free -h
-
-# Check disk space
-echo "Disk space:"
-df -h | grep -E "/dev/(root|mmcblk0p1)"
-
-# Check Python and Flask
-echo "Python version:"
-python3 --version
-
-# Try to find processes using port 8000
-echo "Processes running on port 8000:"
-if command -v lsof >/dev/null 2>&1; then
-  lsof -i :8000
-elif command -v netstat >/dev/null 2>&1; then
-  netstat -tuln | grep ":8000"
-elif command -v ss >/dev/null 2>&1; then
-  ss -tuln | grep ":8000"
-else
-  echo -e "${YELLOW}Could not check port usage - netstat, lsof, and ss not available${NC}"
-fi
-
-# Check for shairport-sync
-if pgrep -x "shairport-sync" > /dev/null; then
-  echo -e "${GREEN}✓ Shairport-sync is running${NC}"
-else
-  echo -e "${RED}✗ Shairport-sync is NOT running${NC}"
-fi
-
-# Check if the Python app is running
-if pgrep -f "python3.*app_airplay.py" > /dev/null; then
-  echo -e "${GREEN}✓ Pi-AirPlay web app is running${NC}"
-else
-  echo -e "${RED}✗ Pi-AirPlay web app is NOT running${NC}"
-fi
-
-echo -e "${BLUE}=== Network Interface Status ===${NC}"
-
-# Show network interfaces
-echo "Network interfaces:"
-ip addr show | grep -E "inet |^[0-9]"
-
-# Get the IP address of the Pi
+# Get IP address
 PI_IP=$(hostname -I | awk '{print $1}')
-echo "Primary IP address: ${PI_IP}"
-
-# Check for firewall rules blocking port 8000
-echo "Checking firewall rules (if any):"
-if command -v iptables >/dev/null 2>&1; then
-  iptables -L | grep -E "8000|reject|drop"
-elif command -v ufw >/dev/null 2>&1; then
-  ufw status
-else
-  echo "No firewall utility found to check"
+if [ -z "$PI_IP" ]; then
+    PI_IP=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '127.0.0.1' | head -n 1)
 fi
 
-echo -e "${BLUE}=== URL Accessibility Tests ===${NC}"
+# Check for critical directories and files
+echo "Checking configuration..."
 
-# Attempt verbose curl to help debug connection issues
-echo "Detailed test of http://${PI_IP}:8000/ :"
-curl -v --max-time 5 http://${PI_IP}:8000/ 2>&1 | grep -E "< HTTP|Connected to|Failed to connect"
+if [ -d "static" ]; then
+    echo -e "${GREEN}✓${NC} Static directory exists"
+else
+    echo -e "${RED}✗${NC} Static directory missing"
+fi
 
-# Test URLs with more verbose output
-for base_url in "http://localhost:8000" "http://${PI_IP}:8000" "http://127.0.0.1:8000"; do
-  for path in "/" "/debug"; do
-    url="${base_url}${path}"
-    echo "Testing $url..."
-    response=$(curl -s -I --max-time 5 $url)
-    http_code=$(echo "$response" | grep HTTP | awk '{print $2}')
-    
-    if [ -n "$http_code" ] && [ "$http_code" = "200" ]; then
-      echo -e "${GREEN}✓ URL $url is accessible (HTTP $http_code)${NC}"
-    elif [ -n "$http_code" ]; then
-      echo -e "${YELLOW}WARNING: URL $url returned HTTP $http_code${NC}"
+if [ -d "templates" ]; then
+    echo -e "${GREEN}✓${NC} Templates directory exists"
+else
+    echo -e "${RED}✗${NC} Templates directory missing"
+fi
+
+# Check for critical template files
+if [ -f "templates/display.html" ]; then
+    echo -e "${GREEN}✓${NC} Template exists: display.html"
+else
+    echo -e "${RED}✗${NC} Template missing: display.html"
+fi
+
+if [ -f "templates/debug.html" ]; then
+    echo -e "${GREEN}✓${NC} Template exists: debug.html"
+else
+    echo -e "${RED}✗${NC} Template missing: debug.html"
+fi
+
+# Verify that app_airplay.py has the debug route
+if grep -n "@app.route('/debug')" app_airplay.py > /dev/null; then
+    LINE_NUM=$(grep -n "@app.route('/debug')" app_airplay.py | cut -d: -f1)
+    echo -e "${LINE_NUM}:@app.route('/debug')"
+    echo -e "${GREEN}✓${NC} Checked routes configuration"
+else
+    echo -e "${RED}✗${NC} Missing debug route in app_airplay.py"
+fi
+
+# Check if the web app is running on port 8000
+echo "Checking if web app is running on port 8000..."
+if command -v netstat > /dev/null; then
+    if netstat -tuln | grep ":8000" > /dev/null; then
+        echo -e "${GREEN}✓${NC} Web app is running on port 8000"
+        PROCESS_INFO=$(ps aux | grep "python.*app_airplay\.py" | grep -v grep)
+        echo "Process info: $PROCESS_INFO"
     else
-      echo -e "${RED}ERROR: URL $url timed out or connection failed${NC}"
+        echo -e "${RED}ERROR:${NC} Web app not detected on port 8000"
     fi
-  done
-done
-
-echo -e "${BLUE}=== Socket Connectivity Test ===${NC}"
-# Test socket direct connection to port 8000
-timeout 3 bash -c "</dev/tcp/${PI_IP}/8000" 2>/dev/null
-if [ $? -eq 0 ]; then
-  echo -e "${GREEN}✓ Socket connection to ${PI_IP}:8000 successful${NC}"
 else
-  echo -e "${RED}✗ Socket connection to ${PI_IP}:8000 failed${NC}"
+    echo -e "${YELLOW}Command netstat not found - installing net-tools package${NC}"
+    sudo apt-get update && sudo apt-get install -y net-tools
+    if netstat -tuln | grep ":8000" > /dev/null; then
+        echo -e "${GREEN}✓${NC} Web app is running on port 8000"
+        PROCESS_INFO=$(ps aux | grep "python.*app_airplay\.py" | grep -v grep)
+        echo "Process info: $PROCESS_INFO"
+    else
+        echo -e "${RED}ERROR:${NC} Web app not detected on port 8000"
+    fi
 fi
 
-echo -e "${BLUE}=== Recommendations ===${NC}"
+# Test URLs with better error handling and timeout
+echo "Testing URLs..."
 
-echo "1. Ensure the Pi-AirPlay service is running:"
-echo "   sudo systemctl status pi-airplay.service"
-echo "   If not running: sudo systemctl restart pi-airplay.service"
+test_url() {
+    local url=$1
+    echo "Testing ${url}..."
+    response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$url" 2>/dev/null)
+    
+    if [ "$response" = "000" ]; then
+        echo -e "${RED}WARNING:${NC} URL $url returned status $response or timed out."
+        echo -e "${YELLOW}This could indicate a network/firewall issue or the server is not running.${NC}"
+        return 1
+    elif [ "$response" = "200" ]; then
+        echo -e "${GREEN}✓${NC} URL $url is accessible (HTTP 200)"
+        return 0
+    else
+        echo -e "${RED}WARNING:${NC} URL $url returned status $response"
+        return 1
+    fi
+}
 
-echo "2. Check application logs:"
-echo "   sudo journalctl -u pi-airplay.service -n 50"
+# Check both localhost and actual IP URLs
+LOCALHOST_OK=true
+IP_OK=true
 
-echo "3. Try starting manually to see errors:"
-echo "   ./start_pi_airplay.sh"
+# Test localhost URLs
+test_url "http://localhost:8000/" || LOCALHOST_OK=false
+test_url "http://localhost:8000/debug" || LOCALHOST_OK=false
 
-echo "4. Check for any network issues:"
-echo "   - Is there a firewall on the Pi or your network blocking port 8000?"
-echo "   - Are you on the same network as the Pi?"
+# Test IP-based URLs
+test_url "http://${PI_IP}:8000/" || IP_OK=false
+test_url "http://${PI_IP}:8000/debug" || IP_OK=false
+
+# Advanced network diagnostics if we're having issues
+if [ "$LOCALHOST_OK" = false ] || [ "$IP_OK" = false ]; then
+    echo -e "${YELLOW}Running network diagnostics...${NC}"
+    echo "Checking if port 8000 is open on all interfaces..."
+    if command -v ss > /dev/null; then
+        ss -tuln | grep ":8000"
+    elif command -v netstat > /dev/null; then
+        netstat -tuln | grep ":8000"
+    fi
+    
+    echo "Checking firewall status..."
+    if command -v ufw > /dev/null; then
+        ufw status
+    elif command -v iptables > /dev/null; then
+        iptables -L -n
+    fi
+    
+    echo "Checking listening interfaces in app_airplay.py..."
+    grep -n "host=" app_airplay.py
+fi
+
+if [ "$LOCALHOST_OK" = true ] && [ "$IP_OK" = false ]; then
+    echo -e "${YELLOW}NOTE: If localhost URLs work but IP URLs fail, this could be due to:${NC}"
+    echo -e "1. Your app is binding to 'localhost' or '127.0.0.1' instead of '0.0.0.0'"
+    echo -e "2. A firewall is blocking external connections to port 8000"
+    echo -e "3. The network interface is not properly configured"
+elif [ "$LOCALHOST_OK" = false ] && [ "$IP_OK" = true ]; then
+    echo -e "${YELLOW}NOTE: If IP URLs work but localhost fails, this is normal for external access.${NC}"
+    echo -e "Always use http://${PI_IP}:8000 when accessing from another device."
+fi
 
 echo "===== Troubleshooting Complete ====="
-echo -e "${GREEN}To access the web interface, use: http://${PI_IP}:8000${NC}"
-echo -e "${GREEN}To access the debug interface, use: http://${PI_IP}:8000/debug${NC}"
-echo "NOTE: Always use the actual IP address when accessing from another device, not 'localhost'"
+echo -e "To access the web interface, use: ${GREEN}http://${PI_IP}:8000${NC}"
+echo -e "To access the debug interface, use: ${GREEN}http://${PI_IP}:8000/debug${NC}"
+echo -e "${YELLOW}NOTE: Always use the actual IP address when accessing from another device, not 'localhost'${NC}"
+echo "If issues persist, check the console output for errors."
+
+# Suggest how to restart the service if needed
+echo -e "\n${YELLOW}If the web interface is not responding, you can restart the service:${NC}"
+echo "sudo systemctl restart pi-airplay.service"
