@@ -40,14 +40,14 @@ else
   echo "ERROR: Web app not detected on port 8000"
 fi
 
-# Try accessing the main URL and debug URL
+# Try accessing the main URL and debug URL with timeout
 echo "Testing URLs..."
 for url in "http://localhost:8000/" "http://localhost:8000/debug"; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" $url)
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 $url)
   if [ "$code" = "200" ]; then
     echo "✓ URL $url is accessible"
   else
-    echo "ERROR: URL $url returned status $code"
+    echo "WARNING: URL $url returned status $code or timed out"
   fi
 done
 

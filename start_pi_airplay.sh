@@ -54,4 +54,4 @@ echo -e "${YELLOW}→${NC} Interface will be available at: http://$(hostname -I 
 echo -e "${YELLOW}→${NC} Debug interface at: http://$(hostname -I | awk '{print $1}'):8000/debug"
 
 # Use host 0.0.0.0 to ensure it's accessible from all network interfaces
-exec python3 app_airplay.py --port 8000 --host 0.0.0.0 --host 0.0.0.0
+exec python3 app_airplay.py --port 8000 --host 0.0.0.0 0.0.0.0 --host 0.0.0.0
