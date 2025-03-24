@@ -79,19 +79,24 @@ If you encounter issues with the service not starting properly:
    sudo journalctl -u pi-airplay.service
    ```
 
-2. Ensure the startup script has execute permissions:
+2. Ensure the startup scripts have execute permissions:
    ```bash
-   chmod +x start_pi_airplay.sh
+   chmod +x start_pi_airplay.sh restart_web_interface.sh run_shairport.sh
    ```
 
-3. Run the services manually for debugging:
+3. Use the restart script to handle port conflicts automatically:
+   ```bash
+   ./restart_web_interface.sh
+   ```
+
+4. Run the services manually for debugging:
    ```bash
    # The manual approach works like this - this is what our service does for you:
-   shairport-sync
+   ./run_shairport.sh
    python3 app_airplay.py --port 8000 --host 0.0.0.0
    ```
 
-4. Check that the metadata pipe exists and has correct permissions:
+5. Check that the metadata pipe exists and has correct permissions:
    ```bash
    ls -la /tmp/shairport-sync-metadata
    # Should show permissions like: prw-rw-rw-
