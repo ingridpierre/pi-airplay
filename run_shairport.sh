@@ -1,24 +1,29 @@
 #!/bin/bash
 
 # Ensure the metadata pipe exists and has correct permissions
-if [ -e /tmp/shairport-sync-metadata ]; then
-  rm /tmp/shairport-sync-metadata
+if [ ! -e /tmp/shairport-sync-metadata ]; then
+  echo "Creating metadata pipe..."
+  mkfifo /tmp/shairport-sync-metadata
 fi
 
-echo "Creating metadata pipe..."
-mkfifo /tmp/shairport-sync-metadata
+echo "Setting correct permissions for metadata pipe..."
 chmod 666 /tmp/shairport-sync-metadata
 
-# Start shairport-sync with ALSA backend and no mDNS
-echo "Starting shairport-sync..."
-shairport-sync -c config/shairport-sync.conf -o alsa -m avahi -- -d default
+# Check if system shairport-sync is running
+if ! pgrep -x "shairport-sync" > /dev/null; then
+  echo "Starting system shairport-sync..."
+  systemctl start shairport-sync.service
+else
+  echo "Shairport-sync is already running."
+fi
 
-# Keep script running
-while true; do
-  echo "Checking shairport-sync status..."
-  if ! pgrep -f shairport-sync > /dev/null; then
-    echo "Restarting shairport-sync..."
-    shairport-sync -c config/shairport-sync.conf -o alsa -m dummy -- -d default
-  fi
-  sleep 5
-done
+# Verify metadata pipe is working
+if [ -e /tmp/shairport-sync-metadata ]; then
+  echo "✓ Metadata pipe verified at /tmp/shairport-sync-metadata"
+else
+  echo "✗ Error: Metadata pipe not found"
+  exit 1
+fi
+
+echo "All systems ready. Pi-AirPlay is now using system shairport-sync."
+exit 0
