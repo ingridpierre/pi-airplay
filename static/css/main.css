@@ -160,6 +160,6 @@ body {
 }
 
 /* Default album art placeholder styles */
-img[src="/static/artwork/default_album.svg"] {
+img[src="/static/artwork/default_album.jpg"] {
     opacity: 0.7;
 }
