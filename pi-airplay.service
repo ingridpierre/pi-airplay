@@ -1,15 +1,18 @@
 [Unit]
-Description=Pi-AirPlay Web Interface
-After=network.target shairport-sync.service
-Requires=shairport-sync.service
+Description=Pi-AirPlay Complete Service
+After=network.target sound.target
+# No longer requires shairport-sync.service since we'll handle it ourselves
 
 [Service]
-ExecStart=/usr/bin/python3 app_airplay.py --port 8000 --host 0.0.0.0
+ExecStart=/bin/bash /home/ivpi/pi-airplay/start_pi_airplay.sh
 Restart=always
 RestartSec=5
 User=ivpi
 Group=ivpi
 WorkingDirectory=/home/ivpi/pi-airplay
+# Standard service settings
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

@@ -1,181 +1,104 @@
 # Pi-AirPlay Fixes and Troubleshooting
 
-This document contains fixes and troubleshooting steps for common issues with the Pi-AirPlay setup.
+This document outlines the major issues that were fixed in the Pi-AirPlay project and how to resolve them.
 
-## Table of Contents
-1. [Overview of Issues](#overview-of-issues)
-2. [Service Conflicts Fix](#service-conflicts-fix)
-3. [Avahi Daemon Issues](#avahi-daemon-issues)
-4. [Metadata Pipe Problems](#metadata-pipe-problems)
-5. [Automatic Startup Fix](#automatic-startup-fix)
-6. [Troubleshooting Scripts](#troubleshooting-scripts)
+## Main Issues Fixed
 
-## Overview of Issues
+### 1. Service Startup Conflicts
 
-The Pi-AirPlay system consists of two main components:
-1. **shairport-sync**: The AirPlay receiver that handles audio streaming
-2. **Pi-AirPlay web interface**: The web-based control interface
+**Problem**: The original setup had multiple services (shairport-sync.service and pi-airplay.service) that were causing conflicts. The web interface would not start properly when the system shairport-sync was already running.
 
-Common issues:
-- Services stopping each other when started manually
-- Metadata pipe permission issues
-- Avahi daemon conflicts
-- Services not starting automatically on boot
+**Solution**: Combined both services into a single service that:
+1. Starts shairport-sync directly
+2. Creates and sets permissions on the metadata pipe
+3. Launches the web interface
 
-## Service Conflicts Fix
+This eliminates race conditions and conflicts between different startup methods.
 
-The original setup had the Pi-AirPlay web interface script (`pi_airplay.sh`) stopping any running shairport-sync instance before starting its own. This caused conflicts when both services were needed.
+### 2. Metadata Pipe Permission Issues
 
-### Solution:
-We've separated the services into two independent systemd services:
-- `shairport-sync.service`: Handles just the AirPlay receiver
-- `pi-airplay.service`: Handles just the web interface
+**Problem**: The metadata pipe (/tmp/shairport-sync-metadata) sometimes had incorrect permissions or didn't exist at startup.
 
-This ensures they don't interfere with each other and can be managed independently.
+**Solution**: The startup script now ensures the pipe exists and has the correct permissions (666) before starting any services.
 
-## Avahi Daemon Issues
+### 3. Multiple Shairport-Sync Configurations
 
-Shairport-sync by default uses the Avahi daemon for mDNS advertisement, which can cause issues if Avahi isn't running or is misconfigured.
+**Problem**: The system had two different shairport-sync configurations - one system-wide at /etc/shairport-sync.conf and another in the project's config directory.
 
-### Solution:
-We've configured shairport-sync to use the "dummy" mDNS backend when Avahi isn't available:
+**Solution**: Simplified to use the system shairport-sync installation and configuration. The start_pi_airplay.sh script now:
+1. Checks if shairport-sync is already running
+2. Starts it if needed
+3. Proceeds with starting the web interface
 
-```
-general = {
-  name = "DAD";
-  output_backend = "alsa";
-  mdns_backend = "dummy";  // Uses dummy backend when Avahi isn't available
-  port = 5000;
-  // Other settings...
-};
-```
+### 4. IQaudio DAC Recognition Issues
 
-## Metadata Pipe Problems
+**Problem**: Sometimes the IQaudio DAC wasn't being correctly recognized or targeted.
 
-Issues with the metadata pipe (`/tmp/shairport-sync-metadata`) are common, including:
-- Pipe doesn't exist
-- Wrong permissions (not readable by web interface)
-- Pipe gets corrupted
+**Solution**: The service now waits for the sound.target to ensure the audio hardware is properly initialized before starting.
 
-### Solution:
-The service startup scripts now ensure the pipe exists with the correct permissions:
+## How to Test the Fix
 
-```bash
-# Setup metadata pipe
-if [ -e /tmp/shairport-sync-metadata ]; then
-  rm /tmp/shairport-sync-metadata
-fi
-mkfifo /tmp/shairport-sync-metadata
-chmod 666 /tmp/shairport-sync-metadata
-```
+1. After installing the service:
+   ```bash
+   sudo systemctl start pi-airplay.service
+   ```
 
-## Automatic Startup Fix
+2. Check if both components are running:
+   ```bash
+   # Check if the web service is running
+   curl http://localhost:8000
+   
+   # Check if shairport-sync is running
+   pgrep -l shairport-sync
+   ```
 
-To ensure both services start automatically on boot, we've created proper systemd service files.
+3. Reboot the Raspberry Pi to verify auto-start works:
+   ```bash
+   sudo reboot
+   ```
 
-### shairport-sync.service
-```
-[Unit]
-Description=Shairport Sync - AirPlay Audio Receiver
-After=sound.target network.target
-# Only use the next line if avahi-daemon is installed and functional
-# Wants=avahi-daemon.service
+4. After reboot, check again:
+   ```bash
+   curl http://localhost:8000
+   pgrep -l shairport-sync
+   ```
 
-[Service]
-ExecStartPre=/bin/bash -c "if [ -e /tmp/shairport-sync-metadata ]; then rm /tmp/shairport-sync-metadata; fi && mkfifo /tmp/shairport-sync-metadata && chmod 666 /tmp/shairport-sync-metadata"
-ExecStart=/usr/bin/shairport-sync -c /home/ivpi/pi-airplay/config/shairport-sync.conf
-Restart=always
-RestartSec=5
-User=root
-Group=root
-WorkingDirectory=/home/ivpi/pi-airplay
+## Common Issues and Solutions
 
-[Install]
-WantedBy=multi-user.target
-```
+### Web Interface Shows "Waiting for Music" but AirPlay Doesn't Connect
 
-### pi-airplay.service
-```
-[Unit]
-Description=Pi-AirPlay Web Interface
-After=network.target shairport-sync.service
-Wants=shairport-sync.service
+1. Check if shairport-sync is running:
+   ```bash
+   pgrep -l shairport-sync
+   ```
 
-[Service]
-ExecStart=/usr/bin/python3 /home/ivpi/pi-airplay/app_airplay.py --port 8000 --host 0.0.0.0
-Restart=always
-RestartSec=5
-User=ivpi
-Group=ivpi
-WorkingDirectory=/home/ivpi/pi-airplay
+2. Check the logs:
+   ```bash
+   sudo journalctl -u pi-airplay.service
+   ```
 
-[Install]
-WantedBy=multi-user.target
-```
+3. Restart the service if needed:
+   ```bash
+   sudo systemctl restart pi-airplay.service
+   ```
 
-## Troubleshooting Scripts
+### Audio Device Issues
 
-We've created several scripts to help diagnose and fix issues:
+If there are issues with audio device selection:
 
-### 1. install_services.sh
-Installs and configures the systemd services correctly:
-```bash
-sudo ./install_services.sh
-```
+1. Check available audio devices:
+   ```bash
+   aplay -l
+   ```
 
-### 2. troubleshoot.sh
-Checks your system for common issues and provides solutions:
-```bash
-./troubleshoot.sh
-```
+2. Edit the system-wide shairport-sync config:
+   ```bash
+   sudo nano /etc/shairport-sync.conf
+   ```
 
-### 3. clean_fix.sh
-Automatically fixes common issues with one command:
-```bash
-sudo ./clean_fix.sh
-```
-
-## Manual Recovery Steps
-
-If the automatic scripts don't work, try these manual steps:
-
-1. Stop all services:
-```bash
-sudo systemctl stop shairport-sync.service
-sudo systemctl stop pi-airplay.service
-killall -9 shairport-sync
-killall -9 python3
-```
-
-2. Fix the metadata pipe:
-```bash
-sudo rm -f /tmp/shairport-sync-metadata
-sudo mkfifo /tmp/shairport-sync-metadata
-sudo chmod 666 /tmp/shairport-sync-metadata
-```
-
-3. Start services in order:
-```bash
-sudo systemctl start shairport-sync.service
-sleep 2
-sudo systemctl start pi-airplay.service
-```
-
-4. Check status:
-```bash
-sudo systemctl status shairport-sync.service
-sudo systemctl status pi-airplay.service
-```
-
-## Debugging
-
-For advanced debugging, check these logs:
-```bash
-journalctl -u shairport-sync.service
-journalctl -u pi-airplay.service
-```
-
-For more detailed diagnostics, use the debug interface at:
-```
-http://your-pi-ip:8000/debug
-```
+3. Update the alsa section to match your IQaudio DAC device:
+   ```
+   alsa = {
+     output_device = "hw:4,0"; // Use the correct card and device for your DAC
+   };
+   ```
