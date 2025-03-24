@@ -9,6 +9,7 @@ Pi-AirPlay transforms your Raspberry Pi with IQaudio DAC into a high-quality Air
 - **Clean UI Design**: Elegant dark theme that complements any album artwork
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **High-Quality Audio**: Uses your IQaudio DAC for superior sound quality
+- **Kiosk Mode**: Can run in full-screen kiosk mode for dedicated displays
 
 ## Web Interface
 
@@ -33,27 +34,90 @@ cd pi-airplay
 
 2. Run the installer script:
 ```bash
-sudo ./install_pi_airplay.sh
+sudo ./install_pi_airplay_simple.sh
 ```
 
 3. Follow the on-screen prompts to configure your audio device.
 
 ## Manual Usage
 
-To start Pi-AirPlay manually:
+To start services manually:
 
 ```bash
-./pi_airplay.sh
+sudo systemctl restart shairport-sync.service
+sudo systemctl restart pi-airplay.service
+```
+
+## Setting Up Kiosk Mode
+
+To have Pi-AirPlay automatically launch in full-screen kiosk mode at boot:
+
+1. Create an autostart directory:
+```bash
+mkdir -p /home/ivpi/.config/autostart
+```
+
+2. Create a kiosk mode desktop entry:
+```bash
+nano /home/ivpi/.config/autostart/pi-airplay-kiosk.desktop
+```
+
+Add this content:
+```
+[Desktop Entry]
+Type=Application
+Name=Pi-AirPlay Kiosk
+Exec=chromium-browser --kiosk --app=http://localhost:8000 --disable-restore-session-state --noerrdialogs
+X-GNOME-Autostart-enabled=true
+```
+
+3. Make the file executable:
+```bash
+chmod +x /home/ivpi/.config/autostart/pi-airplay-kiosk.desktop
+```
+
+4. Configure Raspberry Pi to boot to desktop:
+```bash
+sudo raspi-config
+```
+Navigate to: System Options → Boot / Auto Login → Desktop Autologin
+
+5. Disable screen blanking/sleeping:
+```bash
+sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+```
+Add these lines:
+```
+@xset s off
+@xset -dpms
+@xset s noblank
+```
+
+6. Hide the cursor when not in use:
+```bash
+sudo apt-get install unclutter
+echo "@unclutter -idle 0.1 -root" | sudo tee -a /etc/xdg/lxsession/LXDE-pi/autostart
+```
+
+7. Reboot to test:
+```bash
+sudo reboot
 ```
 
 ## Troubleshooting
 
-If you encounter issues, check the [FIXES.md](FIXES.md) file for common problems and solutions.
-
-For more detailed logs:
+If you encounter issues, run the troubleshooting script:
 ```bash
-cat pi_airplay.log
+./troubleshoot.sh
 ```
+
+For more detailed diagnostics:
+```bash
+sudo systemctl status shairport-sync.service
+sudo systemctl status pi-airplay.service
+```
+
+To exit kiosk mode, press Alt+F4 or connect a keyboard and press F11.
 
 ## License
 
