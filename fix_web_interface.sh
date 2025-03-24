@@ -40,17 +40,33 @@ else
   echo "ERROR: Web app not detected on port 8000"
 fi
 
-# Try accessing the main URL and debug URL with timeout
+# Try accessing the main URL and debug URL with timeout using both localhost and IP address
 echo "Testing URLs..."
-for url in "http://localhost:8000/" "http://localhost:8000/debug"; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 $url)
-  if [ "$code" = "200" ]; then
-    echo "✓ URL $url is accessible"
-  else
-    echo "WARNING: URL $url returned status $code or timed out"
-  fi
+# Get the IP address of the Pi
+PI_IP=$(hostname -I | awk '{print $1}')
+
+# Test both localhost and the actual IP
+for base_url in "http://localhost:8000" "http://${PI_IP}:8000"; do
+  for path in "/" "/debug"; do
+    url="${base_url}${path}"
+    echo "Testing $url..."
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 $url)
+    if [ "$code" = "200" ]; then
+      echo "✓ URL $url is accessible"
+    else
+      echo "WARNING: URL $url returned status $code or timed out"
+    fi
+  done
 done
 
+# Provide clearer guidance
+echo "NOTE: If localhost URLs fail but IP URLs work, this is normal for external access."
+echo "Always use http://${PI_IP}:8000 when accessing from another device."
+
 echo "===== Troubleshooting Complete ====="
-echo "To access the debug interface, go to: http://[your-pi-ip]:8000/debug"
+# Get the IP address of the Pi again to make sure we have it
+PI_IP=$(hostname -I | awk '{print $1}')
+echo "To access the web interface, use: http://${PI_IP}:8000"
+echo "To access the debug interface, use: http://${PI_IP}:8000/debug"
+echo "NOTE: Always use the actual IP address when accessing from another device, not 'localhost'"
 echo "If issues persist, check the console output for errors."
