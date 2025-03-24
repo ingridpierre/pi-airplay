@@ -23,6 +23,17 @@ fi
 echo -e "${YELLOW}→${NC} Setting permissions for metadata pipe..."
 chmod 666 /tmp/shairport-sync-metadata
 
+# Ensure artwork directory exists
+if [ ! -d "static/artwork" ]; then
+  echo -e "${YELLOW}→${NC} Creating artwork directory..."
+  mkdir -p static/artwork
+fi
+
+# Check for default album art
+if [ ! -f "static/artwork/default_album.jpg" ] && [ -f "static/artwork/default_album.svg" ]; then
+  echo -e "${YELLOW}→${NC} Using SVG as default album art. JPG would be preferred."
+fi
+
 # Check for critical directories
 if [ ! -d "templates" ] || [ ! -d "static" ]; then
   echo -e "${RED}✗${NC} Error: Missing required directories. Please check your installation."
