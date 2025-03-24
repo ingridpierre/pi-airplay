@@ -1,175 +1,121 @@
 #!/bin/bash
-#
-# Clean Fix Script for Pi-AirPlay
-# This script completely cleans up all running instances and properly
-# configures port assignments to avoid conflicts with legacy installations.
-#
-# Created: March 23, 2025
 
-# Set up logging
-LOG_FILE="clean_fix.log"
-echo "$(date) - Running Pi-AirPlay clean fix..." > "$LOG_FILE"
+# Clean fix script for Pi-AirPlay
+# This script fixes common issues with shairport-sync and Pi-AirPlay
 
-# Function to log messages
-log_message() {
-    echo "$(date) - $1" | tee -a "$LOG_FILE"
-}
-
-# Text formatting
+# Color formatting
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "\n${BOLD}=========================================${NC}"
-echo -e "${BOLD}   Pi-AirPlay Clean Fix${NC}"
-echo -e "${BOLD}=========================================${NC}\n"
+echo -e "${BOLD}Pi-AirPlay Clean Fix Tool${NC}\n"
+echo -e "This script will fix common issues with Pi-AirPlay and shairport-sync."
+echo -e "Note: You may need to run this script with sudo.\n"
 
-# 1. Stop all running Python and shairport-sync processes
-log_message "Stopping all Python processes..."
-echo -e "${YELLOW}→${NC} Terminating all Python and shairport-sync processes..."
-sudo killall -9 python python3 shairport-sync 2>/dev/null
+# Check if we have root privileges
+if [ "$EUID" -ne 0 ]; then
+  echo -e "${YELLOW}⚠ Warning: Running without root privileges. Some operations may fail.${NC}"
+  echo -e "Consider running with: sudo ./clean_fix.sh\n"
+fi
+
+# Stop any running processes
+echo -e "${YELLOW}→${NC} Stopping any running processes..."
+sudo systemctl stop shairport-sync.service 2>/dev/null
+sudo systemctl stop pi-airplay.service 2>/dev/null
+killall -9 shairport-sync 2>/dev/null
+killall -9 python3 2>/dev/null
+echo -e "${GREEN}✓${NC} Processes stopped."
+
+# Fix the metadata pipe
+echo -e "\n${YELLOW}→${NC} Setting up metadata pipe..."
+sudo rm -f /tmp/shairport-sync-metadata
+sudo mkfifo /tmp/shairport-sync-metadata
+sudo chmod 666 /tmp/shairport-sync-metadata
+echo -e "${GREEN}✓${NC} Metadata pipe created with correct permissions."
+
+# Update shairport-sync configuration
+echo -e "\n${YELLOW}→${NC} Checking shairport-sync configuration..."
+if grep -q "mdns_backend.*=.*\"avahi\"" config/shairport-sync.conf; then
+  echo -e "${YELLOW}⚠ Warning: Using Avahi mDNS backend which may cause issues if Avahi isn't running.${NC}"
+  echo -e "   Updating config to use dummy mDNS backend..."
+  sed -i 's/mdns_backend.*=.*"avahi"/mdns_backend = "dummy"/' config/shairport-sync.conf
+  echo -e "${GREEN}✓${NC} Configuration updated."
+else
+  echo -e "${GREEN}✓${NC} Configuration is already using non-Avahi backend."
+fi
+
+# Verify ports are not in conflict
+echo -e "\n${YELLOW}→${NC} Checking for port conflicts..."
+if grep -q "port.*=.*5000" config/shairport-sync.conf; then
+  echo -e "${YELLOW}⚠ Note: shairport-sync is using port 5000 for AirPlay.${NC}"
+fi
+
+# Check if the pi-airplay.service exists
+echo -e "\n${YELLOW}→${NC} Checking service files..."
+if [ -f /etc/systemd/system/pi-airplay.service ]; then
+  echo -e "${GREEN}✓${NC} Pi-AirPlay service file exists."
+else
+  echo -e "${YELLOW}⚠ Warning: Pi-AirPlay service is not installed.${NC}"
+  echo -e "   Run install_services.sh to install the services."
+fi
+
+# Check if the shairport-sync.service exists
+if [ -f /etc/systemd/system/shairport-sync.service ]; then
+  echo -e "${GREEN}✓${NC} Shairport-sync service file exists."
+else
+  echo -e "${YELLOW}⚠ Warning: Shairport-sync service is not installed.${NC}"
+  echo -e "   Run install_services.sh to install the services."
+fi
+
+# Restart services
+echo -e "\n${YELLOW}→${NC} Starting services..."
+if [ -f /etc/systemd/system/shairport-sync.service ]; then
+  sudo systemctl daemon-reload
+  sudo systemctl start shairport-sync.service
+  echo -e "${GREEN}✓${NC} Shairport-sync service started."
+else
+  echo -e "${YELLOW}⚠ Warning: Can't start shairport-sync service (not installed).${NC}"
+  echo -e "   Starting manually..."
+  shairport-sync -c $(pwd)/config/shairport-sync.conf -m dummy -o alsa -- -d default &
+  echo -e "${GREEN}✓${NC} Shairport-sync started manually."
+fi
+
 sleep 2
 
-# 2. Check nothing is running on our ports
-log_message "Checking ports 5000 and 8000..."
-PROCESSES_5000=$(sudo netstat -tulpn | grep :5000 || echo "None")
-PROCESSES_8000=$(sudo netstat -tulpn | grep :8000 || echo "None")
-
-if [[ "$PROCESSES_5000" != "None" ]]; then
-    log_message "WARNING: Processes still using port 5000: $PROCESSES_5000"
-    echo -e "${RED}✗${NC} Processes still using port 5000"
-    echo -e "   Attempting to terminate them..."
-    sudo fuser -k 5000/tcp 2>/dev/null
-fi
-
-if [[ "$PROCESSES_8000" != "None" ]]; then
-    log_message "WARNING: Processes still using port 8000: $PROCESSES_8000"
-    echo -e "${RED}✗${NC} Processes still using port 8000"
-    echo -e "   Attempting to terminate them..."
-    sudo fuser -k 8000/tcp 2>/dev/null
-fi
-
-# 3. Clean up the metadata pipe
-log_message "Cleaning up the metadata pipe..."
-echo -e "${YELLOW}→${NC} Removing and recreating metadata pipe..."
-if [ -e /tmp/shairport-sync-metadata ]; then
-    rm /tmp/shairport-sync-metadata
-fi
-mkfifo /tmp/shairport-sync-metadata
-chmod 666 /tmp/shairport-sync-metadata
-log_message "Metadata pipe recreated"
-
-# 4. Create proper shairport-sync configuration with port 5000
-log_message "Creating shairport-sync configuration..."
-echo -e "${YELLOW}→${NC} Creating proper shairport-sync config..."
-
-mkdir -p /usr/local/etc
-CONF_FILE="/usr/local/etc/shairport-sync.conf"
-
-cat > "$CONF_FILE" << EOF
-// Shairport-Sync Configuration for Pi-AirPlay
-general = {
-  name = "DAD";
-  port = 5000;
-  interpolation = "basic";
-  output_backend = "alsa";
-  mdns_backend = "avahi";
-  drift_tolerance_in_seconds = 0.002;
-  ignore_volume_control = "no";
-  volume_range_db = 60;
-  regtype = "_raop._tcp";
-  playback_mode = "stereo";
-};
-
-alsa = {
-  output_device = "default"; // Will be auto-detected
-  mixer_control_name = "PCM";
-};
-
-metadata = {
-  enabled = "yes";
-  include_cover_art = "yes";
-  pipe_name = "/tmp/shairport-sync-metadata";
-  pipe_timeout = 5000;
-};
-
-diagnostics = {
-  log_verbosity = 1;
-};
-EOF
-
-log_message "Created shairport-sync configuration"
-echo -e "${GREEN}✓${NC} Created shairport-sync configuration"
-
-# 5. Start shairport-sync on port 5000
-log_message "Starting shairport-sync on port 5000..."
-echo -e "${YELLOW}→${NC} Starting shairport-sync on port 5000..."
-shairport-sync -c "$CONF_FILE" -v >> "$LOG_FILE" 2>&1 &
-SHAIRPORT_PID=$!
-sleep 3
-
-# Check if shairport-sync is running
-if pgrep -f "shairport-sync" > /dev/null; then
-    log_message "shairport-sync started successfully on port 5000"
-    echo -e "${GREEN}✓${NC} shairport-sync started successfully on port 5000"
+if [ -f /etc/systemd/system/pi-airplay.service ]; then
+  sudo systemctl start pi-airplay.service
+  echo -e "${GREEN}✓${NC} Pi-AirPlay service started."
 else
-    log_message "ERROR: Failed to start shairport-sync"
-    echo -e "${RED}✗${NC} Failed to start shairport-sync"
-    echo -e "   Check log file for details: $LOG_FILE"
+  echo -e "${YELLOW}⚠ Warning: Can't start pi-airplay service (not installed).${NC}"
+  echo -e "   Starting manually..."
+  python3 app_airplay.py --port 8000 --host 0.0.0.0 &
+  echo -e "${GREEN}✓${NC} Pi-AirPlay started manually."
 fi
 
-# 6. Start Pi-AirPlay web interface on port 8000
-log_message "Starting Pi-AirPlay web interface on port 8000..."
-echo -e "${YELLOW}→${NC} Starting Pi-AirPlay web interface on port 8000..."
-
-# Determine if the virtual environment exists
-if [ -d "venv" ]; then
-    log_message "Using virtual environment..."
-    source venv/bin/activate
-    PYTHON="python"
+# Final status check
+echo -e "\n${BOLD}Status Check:${NC}"
+echo -e "${YELLOW}→${NC} Checking if shairport-sync is running..."
+if pgrep -f shairport-sync > /dev/null; then
+  echo -e "${GREEN}✓${NC} Shairport-sync is running."
 else
-    log_message "Using system Python..."
-    PYTHON="python3"
+  echo -e "${RED}✗ Error: Shairport-sync failed to start.${NC}"
+  echo -e "   Try running: shairport-sync -c $(pwd)/config/shairport-sync.conf -m dummy -o alsa -- -d default"
 fi
 
-$PYTHON app_airplay.py --port 8000 --host 0.0.0.0 >> "$LOG_FILE" 2>&1 &
-WEB_PID=$!
-sleep 3
-
-# 7. Verify everything is running correctly
-log_message "Verifying services..."
-echo -e "${YELLOW}→${NC} Verifying services..."
-
-# Check for the web interface
-if pgrep -f "app_airplay.py --port 8000" > /dev/null; then
-    log_message "Pi-AirPlay web interface running on port 8000"
-    echo -e "${GREEN}✓${NC} Pi-AirPlay web interface running on port 8000"
+echo -e "${YELLOW}→${NC} Checking if Pi-AirPlay web interface is running..."
+if pgrep -f "python.*app_airplay.py" > /dev/null; then
+  echo -e "${GREEN}✓${NC} Pi-AirPlay web interface is running."
 else
-    log_message "ERROR: Pi-AirPlay web interface not running"
-    echo -e "${RED}✗${NC} Pi-AirPlay web interface not running"
-    echo -e "   Check log file for details: $LOG_FILE"
+  echo -e "${RED}✗ Error: Pi-AirPlay web interface failed to start.${NC}"
+  echo -e "   Try running: python3 app_airplay.py --port 8000 --host 0.0.0.0"
 fi
 
-# Get IP address
-IP_ADDRESS=$(hostname -I | awk '{print $1}')
+# Print access information
+echo -e "\n${BOLD}Access Information:${NC}"
+echo -e "Pi-AirPlay web interface: http://localhost:8000"
+echo -e "AirPlay device name: DAD"
 
-echo -e "\n${BOLD}=========================================${NC}"
-echo -e "${BOLD}   Pi-AirPlay is now running!${NC}"
-echo -e "${BOLD}=========================================${NC}\n"
-
-echo -e "Services status:"
-echo -e "  ${GREEN}•${NC} AirPlay service on port 5000"
-echo -e "  ${GREEN}•${NC} Web interface on port 8000"
-echo -e ""
-echo -e "Access the web interface at: ${BOLD}http://$IP_ADDRESS:8000${NC}"
-echo -e "Connect to ${BOLD}DAD${NC} via AirPlay from your Apple device"
-echo -e ""
-echo -e "If you still experience issues:"
-echo -e "  ${YELLOW}1.${NC} Reboot your Raspberry Pi"
-echo -e "  ${YELLOW}2.${NC} Check for errors in $LOG_FILE"
-echo -e "  ${YELLOW}3.${NC} Try running this script again"
-echo -e ""
-echo -e "Log saved to: $LOG_FILE"
-echo -e "-----------------------------------------"
+echo -e "\n${BOLD}Cleanup Complete!${NC}"
+echo -e "If you're still experiencing issues, try rebooting your Raspberry Pi."

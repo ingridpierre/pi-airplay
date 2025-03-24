@@ -46,7 +46,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "while true; do chmod 666 /tmp/shairport-sync-metadata 2>/dev/null || (mkfifo /tmp/shairport-sync-metadata && chmod 666 /tmp/shairport-sync-metadata) && shairport-sync -c config/shairport-sync.conf -v; sleep 2; done"
+args = "./run_shairport.sh"
 
 [deployment]
 run = ["sh", "-c", "python app.py"]

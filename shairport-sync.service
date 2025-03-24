@@ -1,0 +1,17 @@
+[Unit]
+Description=Shairport Sync - AirPlay Audio Receiver
+After=sound.target network.target
+# Only use the next line if avahi-daemon is installed and functional
+# Wants=avahi-daemon.service
+
+[Service]
+ExecStartPre=/bin/bash -c "if [ -e /tmp/shairport-sync-metadata ]; then rm /tmp/shairport-sync-metadata; fi && mkfifo /tmp/shairport-sync-metadata && chmod 666 /tmp/shairport-sync-metadata"
+ExecStart=/usr/bin/shairport-sync -c /home/ivpi/pi-airplay/config/shairport-sync.conf
+Restart=always
+RestartSec=5
+User=root
+Group=root
+WorkingDirectory=/home/ivpi/pi-airplay
+
+[Install]
+WantedBy=multi-user.target
