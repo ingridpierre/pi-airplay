@@ -4,7 +4,7 @@ modules = ["python-3.11"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Pi-AirPlay Complete"
+runButton = "Pi-AirPlay"
 
 [[workflows.workflow]]
 name = "Project"
@@ -50,6 +50,15 @@ args = "./run_shairport.sh"
 
 [[workflows.workflow]]
 name = "Pi-AirPlay Complete"
+author = 32323646
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "./restart_web_interface.sh"
+
+[[workflows.workflow]]
+name = "Pi-AirPlay"
 author = 32323646
 mode = "sequential"
 
