@@ -27,3 +27,12 @@ fi
 
 echo "All systems ready. Pi-AirPlay is now using system shairport-sync."
 exit 0
+#!/bin/bash
+# Ensure the metadata pipe exists with correct permissions
+if [ ! -p /tmp/shairport-sync-metadata ]; then
+  mkfifo /tmp/shairport-sync-metadata
+fi
+chmod 666 /tmp/shairport-sync-metadata
+
+# Run shairport-sync
+shairport-sync -v
